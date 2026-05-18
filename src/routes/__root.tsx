@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Lumen is a fast, beautiful AI assistant that answers anything — code, ideas, writing, plans, and explanations.",
       },
       { name: "author", content: "Lumen" },
-      { property: "og:title", content: "Lumen — AI chat" },
+      { property: "og:title", content: "Lumen — AI chat that actually answers" },
       {
         property: "og:description",
         content: "A fast, beautiful AI assistant for every question.",
@@ -88,6 +88,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Lumen — AI chat that actually answers" },
+      { name: "description", content: "Nova AI is an advanced AI chatbot designed to provide comprehensive answers to any question." },
+      { property: "og:description", content: "Nova AI is an advanced AI chatbot designed to provide comprehensive answers to any question." },
+      { name: "twitter:description", content: "Nova AI is an advanced AI chatbot designed to provide comprehensive answers to any question." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fed10e02-1338-4c8a-94b5-0b2d8891d8d1/id-preview-e76b77dc--39912aef-c8fc-4938-aaca-a5622ceeba39.lovable.app-1779108016392.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fed10e02-1338-4c8a-94b5-0b2d8891d8d1/id-preview-e76b77dc--39912aef-c8fc-4938-aaca-a5622ceeba39.lovable.app-1779108016392.png" },
     ],
     links: [
       {
