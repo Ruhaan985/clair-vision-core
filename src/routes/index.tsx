@@ -1,7 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Sidebar } from "@/components/lumen/sidebar";
-import { ChatWindow } from "@/components/lumen/chat-window";
 import { loadThreads, newThreadId } from "@/lib/threads";
 
 export const Route = createFileRoute("/")({
@@ -20,15 +18,9 @@ function Index() {
     navigate({ to: "/c/$threadId", params: { threadId: target }, replace: true });
   }, [navigate]);
 
-  // Render a minimal frame while redirecting to avoid a flash of empty UI.
   return (
-    <div className="flex h-screen w-full overflow-hidden">
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-      <div className="flex-1">
-        <ChatWindow threadId="__placeholder__" />
-      </div>
+    <div className="flex h-screen w-full items-center justify-center aurora-bg">
+      <div className="text-sm text-muted-foreground">Loading Lumen…</div>
     </div>
   );
 }
