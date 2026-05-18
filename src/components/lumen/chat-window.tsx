@@ -117,7 +117,6 @@ export function ChatWindow({ threadId }: { threadId: string }) {
         <div className="flex items-center gap-2">
           <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_10px] shadow-primary/60" />
           <span className="text-sm font-medium tracking-tight">Lumen</span>
-          <span className="text-xs text-muted-foreground">· gemini-3-flash</span>
         </div>
         {isBusy && (
           <button
