@@ -15,6 +15,8 @@ import {
   X,
   Send,
   Square,
+  Sparkles,
+  ImageOff,
 } from "lucide-react";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -384,15 +386,28 @@ function MessageBody({ message }: { message: UIMessage }) {
   >;
 
   const generatedImages: Array<{ url: string; prompt?: string }> = [];
+  let pendingImagePrompt: string | null = null;
+  let imageError: string | null = null;
   for (const p of parts) {
     const t = p.type as string;
     if (t === "tool-generate_image") {
+      const state = (p as { state?: string }).state;
+      const input = (p as { input?: { prompt?: string } }).input;
       const output =
         (p as { output?: unknown }).output ??
         (p as { result?: unknown }).result;
       if (output && typeof output === "object") {
-        const o = output as { imageUrl?: string; prompt?: string };
+        const o = output as { imageUrl?: string; prompt?: string; error?: string };
         if (o.imageUrl) generatedImages.push({ url: o.imageUrl, prompt: o.prompt });
+        else if (o.error) imageError = o.error;
+      }
+      if (
+        !output &&
+        state &&
+        state !== "output-available" &&
+        state !== "output-error"
+      ) {
+        pendingImagePrompt = input?.prompt ?? "";
       }
     }
   }
@@ -442,7 +457,7 @@ function MessageBody({ message }: { message: UIMessage }) {
           {generatedImages.map((img, i) => (
             <figure
               key={i}
-              className="overflow-hidden rounded-xl border border-border bg-card/40"
+              className="overflow-hidden rounded-xl border border-border bg-card/40 animate-image-reveal glow-mint"
             >
               <img
                 src={img.url}
@@ -457,6 +472,39 @@ function MessageBody({ message }: { message: UIMessage }) {
             </figure>
           ))}
         </div>
+      )}
+
+      {pendingImagePrompt !== null && (
+        <ImageGeneratingCard prompt={pendingImagePrompt} />
+      )}
+
+      {imageError && (
+        <div className="inline-flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
+          <ImageOff className="h-3.5 w-3.5" /> {imageError}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImageGeneratingCard({ prompt }: { prompt: string }) {
+  return (
+    <div className="relative w-full max-w-md overflow-hidden rounded-xl border border-primary/40 bg-card/40 p-4">
+      <div className="pointer-events-none absolute inset-0 -translate-x-full animate-shimmer-sweep bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      <div className="relative flex aspect-video items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 via-background to-primary/5">
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative flex h-12 w-12 items-center justify-center">
+            <span className="absolute inset-0 animate-ping rounded-full bg-primary/40" />
+            <span className="absolute inset-2 rounded-full bg-primary/60 blur-sm" />
+            <Sparkles className="relative h-6 w-6 text-primary-foreground animate-pulse" />
+          </div>
+          <Shimmer className="text-xs">Conjuring your image…</Shimmer>
+        </div>
+      </div>
+      {prompt && (
+        <p className="mt-3 line-clamp-2 text-[11px] italic text-muted-foreground">
+          “{prompt}”
+        </p>
       )}
     </div>
   );
