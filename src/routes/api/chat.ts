@@ -1,6 +1,14 @@
 import "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  streamText,
+  tool,
+  stepCountIs,
+  generateText,
+  type UIMessage,
+} from "ai";
+import { z } from "zod";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway";
 
 const SYSTEM_PROMPT = `You are Lumen, a brilliant, friendly, and exceptionally knowledgeable AI assistant.
@@ -23,7 +31,11 @@ Rules:
 - If you don't know something or it depends on real-time data, say so plainly and suggest how the user can find out.
 - Never refuse benign requests. Never invent facts; flag uncertainty.
 - Default to the user's language.
-- Keep answers tight but complete — no padding, no "as an AI" disclaimers.`;
+- Keep answers tight but complete — no padding, no "as an AI" disclaimers.
+
+Multimodal:
+- The user can attach images and files. When images are attached, look at them carefully and answer using what you see.
+- When the user asks you to draw, generate, create, design, make, or imagine an image / picture / illustration / logo / artwork, CALL the generate_image tool with a vivid, detailed English prompt. Do NOT describe the image in text instead — actually call the tool. After it returns, give a one-line caption only; the image is rendered automatically.`;
 
 type ChatBody = { messages?: unknown };
 
@@ -49,6 +61,45 @@ export const Route = createFileRoute("/api/chat")({
             model,
             system: SYSTEM_PROMPT,
             messages: await convertToModelMessages(messages as UIMessage[]),
+            stopWhen: stepCountIs(5),
+            tools: {
+              generate_image: tool({
+                description:
+                  "Generate an image from a detailed text prompt. Use whenever the user asks to draw, create, generate, design, or make an image/picture/illustration/logo/artwork.",
+                inputSchema: z.object({
+                  prompt: z
+                    .string()
+                    .min(3)
+                    .describe(
+                      "A vivid, detailed English description of the image to generate. Include subject, style, lighting, composition.",
+                    ),
+                }),
+                execute: async ({ prompt }) => {
+                  try {
+                    const imageModel = gateway(
+                      "google/gemini-2.5-flash-image",
+                    );
+                    const res = await generateText({
+                      model: imageModel,
+                      prompt,
+                    });
+                    const file = res.files?.find((f) =>
+                      f.mediaType?.startsWith("image/"),
+                    );
+                    if (!file) {
+                      return { error: "No image was generated. Try a different prompt." };
+                    }
+                    const dataUrl = `data:${file.mediaType};base64,${file.base64}`;
+                    return { imageUrl: dataUrl, mediaType: file.mediaType, prompt };
+                  } catch (e) {
+                    return {
+                      error:
+                        e instanceof Error ? e.message : "Image generation failed.",
+                    };
+                  }
+                },
+              }),
+            },
           });
 
           return result.toUIMessageStreamResponse({
