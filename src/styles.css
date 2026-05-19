@@ -216,3 +216,16 @@
   text-align: left;
 }
 .is-assistant .prose-content th { background: oklch(1 0 0 / 0.04); font-weight: 600; }
+
+@keyframes image-reveal {
+  0% { opacity: 0; transform: scale(0.96); filter: blur(8px) saturate(1.4); }
+  60% { filter: blur(2px) saturate(1.2); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0) saturate(1); }
+}
+.animate-image-reveal { animation: image-reveal 0.7s ease-out both; }
+
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.animate-shimmer-sweep { animation: shimmer-sweep 1.6s linear infinite; }

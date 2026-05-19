@@ -5,7 +5,6 @@ import {
   streamText,
   tool,
   stepCountIs,
-  generateText,
   type UIMessage,
 } from "ai";
 import { z } from "zod";
@@ -76,21 +75,43 @@ export const Route = createFileRoute("/api/chat")({
                 }),
                 execute: async ({ prompt }) => {
                   try {
-                    const imageModel = gateway(
-                      "google/gemini-2.5-flash-image",
+                    const res = await fetch(
+                      "https://ai.gateway.lovable.dev/v1/chat/completions",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "Lovable-API-Key": key,
+                          "X-Lovable-AIG-SDK": "vercel-ai-sdk",
+                        },
+                        body: JSON.stringify({
+                          model: "google/gemini-2.5-flash-image",
+                          messages: [{ role: "user", content: prompt }],
+                          modalities: ["image", "text"],
+                        }),
+                      },
                     );
-                    const res = await generateText({
-                      model: imageModel,
-                      prompt,
-                    });
-                    const file = res.files?.find((f) =>
-                      f.mediaType?.startsWith("image/"),
-                    );
-                    if (!file) {
-                      return { error: "No image was generated. Try a different prompt." };
+                    if (!res.ok) {
+                      const txt = await res.text();
+                      return {
+                        error: `Image generation failed (${res.status}): ${txt.slice(0, 200)}`,
+                      };
                     }
-                    const dataUrl = `data:${file.mediaType};base64,${file.base64}`;
-                    return { imageUrl: dataUrl, mediaType: file.mediaType, prompt };
+                    const data = (await res.json()) as {
+                      choices?: Array<{
+                        message?: {
+                          images?: Array<{ image_url?: { url?: string } }>;
+                        };
+                      }>;
+                    };
+                    const url =
+                      data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+                    if (!url) {
+                      return {
+                        error: "No image was generated. Try a different prompt.",
+                      };
+                    }
+                    return { imageUrl: url, prompt };
                   } catch (e) {
                     return {
                       error:
