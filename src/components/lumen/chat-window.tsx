@@ -372,3 +372,92 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
     </div>
   );
 }
+
+type AnyPart = UIMessage["parts"][number] & Record<string, unknown>;
+
+function MessageBody({ message }: { message: UIMessage }) {
+  const text = renderText(message);
+  const parts = message.parts as AnyPart[];
+
+  const files = parts.filter((p) => p.type === "file") as Array<
+    AnyPart & { mediaType?: string; url?: string; filename?: string }
+  >;
+
+  const generatedImages: Array<{ url: string; prompt?: string }> = [];
+  for (const p of parts) {
+    const t = p.type as string;
+    if (t === "tool-generate_image") {
+      const output =
+        (p as { output?: unknown }).output ??
+        (p as { result?: unknown }).result;
+      if (output && typeof output === "object") {
+        const o = output as { imageUrl?: string; prompt?: string };
+        if (o.imageUrl) generatedImages.push({ url: o.imageUrl, prompt: o.prompt });
+      }
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {files.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {files.map((f, i) => {
+            const isImg = f.mediaType?.startsWith("image/");
+            if (isImg && f.url) {
+              return (
+                <img
+                  key={i}
+                  src={f.url}
+                  alt={f.filename ?? "attachment"}
+                  className="max-h-64 max-w-xs rounded-lg border border-border object-cover"
+                />
+              );
+            }
+            return (
+              <a
+                key={i}
+                href={f.url}
+                download={f.filename}
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-2 text-xs hover:bg-card"
+              >
+                <FileText className="h-4 w-4 text-primary" />
+                <span className="max-w-[180px] truncate">{f.filename ?? "file"}</span>
+              </a>
+            );
+          })}
+        </div>
+      )}
+
+      {text &&
+        (message.role === "assistant" ? (
+          <div className="prose-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+          </div>
+        ) : (
+          <div className="whitespace-pre-wrap">{text}</div>
+        ))}
+
+      {generatedImages.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {generatedImages.map((img, i) => (
+            <figure
+              key={i}
+              className="overflow-hidden rounded-xl border border-border bg-card/40"
+            >
+              <img
+                src={img.url}
+                alt={img.prompt ?? "Generated image"}
+                className="w-full max-w-md"
+              />
+              {img.prompt && (
+                <figcaption className="px-3 py-2 text-[11px] text-muted-foreground">
+                  {img.prompt}
+                </figcaption>
+              )}
+            </figure>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
