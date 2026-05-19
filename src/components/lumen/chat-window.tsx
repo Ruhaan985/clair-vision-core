@@ -10,6 +10,9 @@ import {
   Compass,
   Lightbulb,
   PenLine,
+  Paperclip,
+  FileText,
+  X,
   Send,
   Square,
 } from "lucide-react";
@@ -29,6 +32,24 @@ function renderText(message: UIMessage): string {
     .map((p) => (p.type === "text" ? p.text : ""))
     .join("");
 }
+
+type Attachment = {
+  id: string;
+  file: File;
+  url: string; // data URL
+  isImage: boolean;
+};
+
+async function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 MB per file
 
 const SUGGESTIONS = [
   {
@@ -70,6 +91,8 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   });
 
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isBusy = status === "submitted" || status === "streaming";
@@ -102,11 +125,41 @@ export function ChatWindow({ threadId }: { threadId: string }) {
 
   const submit = (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || isBusy) return;
-    sendMessage({ text: trimmed });
+    if ((!trimmed && attachments.length === 0) || isBusy) return;
+    const files = attachments.map((a) => ({
+      type: "file" as const,
+      mediaType: a.file.type || "application/octet-stream",
+      url: a.url,
+      filename: a.file.name,
+    }));
+    sendMessage({ text: trimmed || "(see attached)", files });
     setInput("");
+    setAttachments([]);
     // Update URL if we're not already there (defensive)
     navigate({ to: "/c/$threadId", params: { threadId } });
+  };
+
+  const addFiles = async (list: FileList | File[]) => {
+    const incoming = Array.from(list);
+    const next: Attachment[] = [];
+    for (const file of incoming) {
+      if (file.size > MAX_FILE_BYTES) {
+        toast.error(`${file.name} is too large (max 8 MB).`);
+        continue;
+      }
+      try {
+        const url = await fileToDataUrl(file);
+        next.push({
+          id: Math.random().toString(36).slice(2),
+          file,
+          url,
+          isImage: file.type.startsWith("image/"),
+        });
+      } catch {
+        toast.error(`Could not read ${file.name}`);
+      }
+    }
+    if (next.length) setAttachments((prev) => [...prev, ...next]);
   };
 
   const isEmpty = messages.length === 0;
@@ -137,15 +190,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               {messages.map((m) => (
                 <Message from={m.role} key={m.id} className="mb-5">
                   <MessageContent>
-                    {m.role === "assistant" ? (
-                      <div className="prose-content">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {renderText(m)}
-                        </ReactMarkdown>
-                      </div>
-                    ) : (
-                      <div className="whitespace-pre-wrap">{renderText(m)}</div>
-                    )}
+                    <MessageBody message={m} />
                   </MessageContent>
                 </Message>
               ))}
@@ -175,12 +220,73 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           }}
           className="mx-auto w-full max-w-3xl"
         >
+          {attachments.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {attachments.map((a) => (
+                <div
+                  key={a.id}
+                  className="group relative flex items-center gap-2 rounded-lg border border-border bg-card/80 p-1.5 pr-2 text-xs"
+                >
+                  {a.isImage ? (
+                    <img
+                      src={a.url}
+                      alt={a.file.name}
+                      className="h-10 w-10 rounded object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded bg-primary/15 text-primary">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                  )}
+                  <span className="max-w-[140px] truncate text-foreground/80">
+                    {a.file.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAttachments((p) => p.filter((x) => x.id !== a.id))
+                    }
+                    className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+                    aria-label="Remove"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div
             className={cn(
               "group relative flex items-end gap-2 rounded-2xl border border-border bg-card/80 p-2 pl-4 shadow-lg transition-all",
               "focus-within:border-primary/60 focus-within:glow-mint",
             )}
+            onDragOver={(e) => {
+              e.preventDefault();
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (e.dataTransfer.files.length) void addFiles(e.dataTransfer.files);
+            }}
           >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,application/pdf,text/*,.md,.json,.csv"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) void addFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Attach files"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
             <textarea
               ref={textareaRef}
               value={input}
@@ -191,18 +297,25 @@ export function ChatWindow({ threadId }: { threadId: string }) {
                   submit(input);
                 }
               }}
+              onPaste={(e) => {
+                const files = Array.from(e.clipboardData.files);
+                if (files.length) {
+                  e.preventDefault();
+                  void addFiles(files);
+                }
+              }}
               rows={1}
-              placeholder="Ask Lumen anything…"
+              placeholder="Ask Lumen anything, attach an image, or say ‘draw…’"
               className="flex-1 resize-none bg-transparent py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
               disabled={isBusy && status !== "streaming"}
             />
             <button
               type="submit"
-              disabled={!input.trim() || isBusy}
+              disabled={(!input.trim() && attachments.length === 0) || isBusy}
               aria-label="Send"
               className={cn(
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all",
-                input.trim() && !isBusy
+                (input.trim() || attachments.length) && !isBusy
                   ? "bg-primary text-primary-foreground hover:brightness-110 glow-mint"
                   : "bg-muted text-muted-foreground",
               )}
