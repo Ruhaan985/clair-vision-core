@@ -17,6 +17,13 @@ import {
   Square,
   Sparkles,
   ImageOff,
+  FileDown,
+  Presentation,
+  Clapperboard,
+  Image as ImageIcon,
+  MessageCircle,
+  Download,
+  Film,
 } from "lucide-react";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -28,6 +35,13 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { getThread, upsertThread, deriveTitle } from "@/lib/threads";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/lumen-logo.png";
+import {
+  buildAndDownloadPdf,
+  buildAndDownloadPptx,
+  type PdfPayload,
+  type PptxPayload,
+  type StoryboardPayload,
+} from "@/lib/generators";
 
 function renderText(message: UIMessage): string {
   return message.parts
@@ -77,6 +91,16 @@ const SUGGESTIONS = [
   },
 ];
 
+type Mode = { id: string; label: string; icon: typeof MessageCircle; hint: string };
+
+const MODES: Mode[] = [
+  { id: "chat", label: "Chat", icon: MessageCircle, hint: "" },
+  { id: "image", label: "Image", icon: ImageIcon, hint: "Generate an image of " },
+  { id: "pdf", label: "PDF", icon: FileDown, hint: "Create a PDF document about " },
+  { id: "slides", label: "Slides", icon: Presentation, hint: "Create a slide deck about " },
+  { id: "video", label: "Video", icon: Clapperboard, hint: "Make a video storyboard for " },
+];
+
 export function ChatWindow({ threadId }: { threadId: string }) {
   const navigate = useNavigate();
   const initial = useMemo(() => getThread(threadId), [threadId]);
@@ -94,6 +118,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
 
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [mode, setMode] = useState<string>("chat");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -126,7 +151,12 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   }, [input]);
 
   const submit = (text: string) => {
-    const trimmed = text.trim();
+    const raw = text.trim();
+    const m = MODES.find((x) => x.id === mode);
+    const trimmed =
+      m && m.hint && raw && !raw.toLowerCase().startsWith(m.hint.trim().toLowerCase().slice(0, 6))
+        ? (m.hint + raw).trim()
+        : raw;
     if ((!trimmed && attachments.length === 0) || isBusy) return;
     const files = attachments.map((a) => ({
       type: "file" as const,
@@ -137,6 +167,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
     sendMessage({ text: trimmed || "(see attached)", files });
     setInput("");
     setAttachments([]);
+    setMode("chat");
     // Update URL if we're not already there (defensive)
     navigate({ to: "/c/$threadId", params: { threadId } });
   };
@@ -257,6 +288,28 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               ))}
             </div>
           )}
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            {MODES.map((m) => {
+              const Icon = m.icon;
+              const active = mode === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setMode(m.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all",
+                    active
+                      ? "border-primary/60 bg-primary/15 text-primary glow-mint"
+                      : "border-border bg-card/40 text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-3 w-3" />
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
           <div
             className={cn(
               "group relative flex items-end gap-2 rounded-2xl border border-border bg-card/80 p-2 pl-4 shadow-lg transition-all",
@@ -388,6 +441,10 @@ function MessageBody({ message }: { message: UIMessage }) {
   const generatedImages: Array<{ url: string; prompt?: string }> = [];
   let pendingImagePrompt: string | null = null;
   let imageError: string | null = null;
+  const pdfPayloads: PdfPayload[] = [];
+  const pptxPayloads: PptxPayload[] = [];
+  const storyboards: StoryboardPayload[] = [];
+  let pendingDoc: { kind: "pdf" | "pptx" | "storyboard"; title?: string } | null = null;
   for (const p of parts) {
     const t = p.type as string;
     if (t === "tool-generate_image") {
@@ -408,6 +465,31 @@ function MessageBody({ message }: { message: UIMessage }) {
         state !== "output-error"
       ) {
         pendingImagePrompt = input?.prompt ?? "";
+      }
+    }
+    if (
+      t === "tool-generate_pdf" ||
+      t === "tool-generate_pptx" ||
+      t === "tool-generate_video_storyboard"
+    ) {
+      const state = (p as { state?: string }).state;
+      const output =
+        (p as { output?: unknown }).output ??
+        (p as { result?: unknown }).result;
+      if (output && typeof output === "object") {
+        const o = output as { kind?: string };
+        if (o.kind === "pdf") pdfPayloads.push(output as PdfPayload);
+        else if (o.kind === "pptx") pptxPayloads.push(output as PptxPayload);
+        else if (o.kind === "storyboard")
+          storyboards.push(output as StoryboardPayload);
+      } else if (state && state !== "output-available" && state !== "output-error") {
+        const kind: "pdf" | "pptx" | "storyboard" =
+          t === "tool-generate_pdf"
+            ? "pdf"
+            : t === "tool-generate_pptx"
+              ? "pptx"
+              : "storyboard";
+        pendingDoc = { kind };
       }
     }
   }
@@ -483,6 +565,137 @@ function MessageBody({ message }: { message: UIMessage }) {
           <ImageOff className="h-3.5 w-3.5" /> {imageError}
         </div>
       )}
+
+      {pdfPayloads.map((p, i) => (
+        <DocumentCard
+          key={`pdf-${i}`}
+          icon={FileDown}
+          label="PDF document"
+          title={p.title}
+          subtitle={p.subtitle || `${p.sections.length} section${p.sections.length === 1 ? "" : "s"}`}
+          onDownload={() => buildAndDownloadPdf(p)}
+        />
+      ))}
+      {pptxPayloads.map((p, i) => (
+        <DocumentCard
+          key={`pptx-${i}`}
+          icon={Presentation}
+          label="Slide deck"
+          title={p.title}
+          subtitle={p.subtitle || `${p.slides.length} slides`}
+          onDownload={() => buildAndDownloadPptx(p)}
+        />
+      ))}
+      {storyboards.map((s, i) => (
+        <StoryboardCard key={`sb-${i}`} payload={s} />
+      ))}
+      {pendingDoc && (
+        <div className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/5 px-3 py-2 text-xs">
+          <Sparkles className="h-3.5 w-3.5 animate-pulse text-primary" />
+          <Shimmer>
+            {pendingDoc.kind === "pdf"
+              ? "Drafting your PDF…"
+              : pendingDoc.kind === "pptx"
+                ? "Designing your slides…"
+                : "Storyboarding your video…"}
+          </Shimmer>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DocumentCard({
+  icon: Icon,
+  label,
+  title,
+  subtitle,
+  onDownload,
+}: {
+  icon: typeof FileDown;
+  label: string;
+  title: string;
+  subtitle?: string;
+  onDownload: () => void | Promise<void>;
+}) {
+  return (
+    <div className="group flex items-center gap-3 rounded-xl border border-primary/40 bg-gradient-to-br from-primary/10 via-card/60 to-card/40 p-3 glow-mint">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] uppercase tracking-wider text-primary/80">
+          {label}
+        </div>
+        <div className="truncate text-sm font-semibold text-foreground">
+          {title}
+        </div>
+        {subtitle && (
+          <div className="truncate text-[11px] text-muted-foreground">
+            {subtitle}
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => void onDownload()}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:brightness-110"
+      >
+        <Download className="h-3.5 w-3.5" />
+        Download
+      </button>
+    </div>
+  );
+}
+
+function StoryboardCard({ payload }: { payload: StoryboardPayload }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-primary/40 bg-card/40 glow-mint">
+      <div className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-r from-primary/15 to-transparent px-4 py-2.5">
+        <Film className="h-4 w-4 text-primary" />
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] uppercase tracking-wider text-primary/80">
+            Video storyboard
+          </div>
+          <div className="truncate text-sm font-semibold">{payload.title}</div>
+        </div>
+        {payload.durationSeconds && (
+          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] text-primary">
+            ~{payload.durationSeconds}s
+          </span>
+        )}
+      </div>
+      <p className="px-4 pt-3 text-xs italic text-muted-foreground">
+        {payload.logline}
+      </p>
+      <ol className="space-y-2 p-4">
+        {payload.scenes.map((s, i) => (
+          <li
+            key={i}
+            className="flex gap-3 rounded-lg border border-border/60 bg-background/40 p-3"
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+              {i + 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-medium text-foreground">{s.scene}</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                <span className="text-primary/80">Visual:</span> {s.visual}
+              </div>
+              {s.voiceover && (
+                <div className="mt-0.5 text-[11px] text-muted-foreground">
+                  <span className="text-primary/80">VO:</span> “{s.voiceover}”
+                </div>
+              )}
+              {s.seconds && (
+                <div className="mt-0.5 text-[10px] text-muted-foreground/80">
+                  {s.seconds}s
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
