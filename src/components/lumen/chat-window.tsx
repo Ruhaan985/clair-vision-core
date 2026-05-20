@@ -118,6 +118,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
 
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [mode, setMode] = useState<string>("chat");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -150,7 +151,12 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   }, [input]);
 
   const submit = (text: string) => {
-    const trimmed = text.trim();
+    const raw = text.trim();
+    const m = MODES.find((x) => x.id === mode);
+    const trimmed =
+      m && m.hint && raw && !raw.toLowerCase().startsWith(m.hint.trim().toLowerCase().slice(0, 6))
+        ? (m.hint + raw).trim()
+        : raw;
     if ((!trimmed && attachments.length === 0) || isBusy) return;
     const files = attachments.map((a) => ({
       type: "file" as const,
@@ -161,6 +167,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
     sendMessage({ text: trimmed || "(see attached)", files });
     setInput("");
     setAttachments([]);
+    setMode("chat");
     // Update URL if we're not already there (defensive)
     navigate({ to: "/c/$threadId", params: { threadId } });
   };
