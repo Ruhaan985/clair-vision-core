@@ -17,6 +17,13 @@ import {
   Square,
   Sparkles,
   ImageOff,
+  FileDown,
+  Presentation,
+  Clapperboard,
+  Image as ImageIcon,
+  MessageCircle,
+  Download,
+  Film,
 } from "lucide-react";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -28,6 +35,13 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { getThread, upsertThread, deriveTitle } from "@/lib/threads";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/lumen-logo.png";
+import {
+  buildAndDownloadPdf,
+  buildAndDownloadPptx,
+  type PdfPayload,
+  type PptxPayload,
+  type StoryboardPayload,
+} from "@/lib/generators";
 
 function renderText(message: UIMessage): string {
   return message.parts
