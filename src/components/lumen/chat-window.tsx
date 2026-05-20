@@ -288,6 +288,28 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               ))}
             </div>
           )}
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            {MODES.map((m) => {
+              const Icon = m.icon;
+              const active = mode === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setMode(m.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all",
+                    active
+                      ? "border-primary/60 bg-primary/15 text-primary glow-mint"
+                      : "border-border bg-card/40 text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-3 w-3" />
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
           <div
             className={cn(
               "group relative flex items-end gap-2 rounded-2xl border border-border bg-card/80 p-2 pl-4 shadow-lg transition-all",
