@@ -91,6 +91,16 @@ const SUGGESTIONS = [
   },
 ];
 
+type Mode = { id: string; label: string; icon: typeof MessageCircle; hint: string };
+
+const MODES: Mode[] = [
+  { id: "chat", label: "Chat", icon: MessageCircle, hint: "" },
+  { id: "image", label: "Image", icon: ImageIcon, hint: "Generate an image of " },
+  { id: "pdf", label: "PDF", icon: FileDown, hint: "Create a PDF document about " },
+  { id: "slides", label: "Slides", icon: Presentation, hint: "Create a slide deck about " },
+  { id: "video", label: "Video", icon: Clapperboard, hint: "Make a video storyboard for " },
+];
+
 export function ChatWindow({ threadId }: { threadId: string }) {
   const navigate = useNavigate();
   const initial = useMemo(() => getThread(threadId), [threadId]);
