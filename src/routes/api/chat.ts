@@ -26,12 +26,13 @@ type ChatBody = { messages?: unknown };
 type StreamWriter = Parameters<Parameters<typeof createUIMessageStream>[0]["execute"]>[0]["writer"];
 type GatewayMessage = {
   role: "system" | "user" | "assistant";
-  content:
-    | string
-    | Array<
-        | { type: "text"; text: string }
-        | { type: "image_url"; image_url: { url: string } }
-      >;
+};
+type GatewayContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+type GatewayMessage = {
+  role: "system" | "user" | "assistant";
+  content: string | GatewayContentPart[];
 };
 type AnyPart = UIMessage["parts"][number] & Record<string, unknown>;
 
@@ -97,9 +98,7 @@ async function tryGatewayStream(
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-    let wrote = false;
-
-    writer.write({ type: "text-start", id: TEXT_ID });
+    let textStarted = false;
 
     const handleLine = (line: string) => {
       if (!line.startsWith("data: ")) return;
@@ -111,7 +110,10 @@ async function tryGatewayStream(
         };
         const delta = parsed.choices?.[0]?.delta?.content;
         if (delta) {
-          wrote = true;
+          if (!textStarted) {
+            textStarted = true;
+            writer.write({ type: "text-start", id: TEXT_ID });
+          }
           writer.write({ type: "text-delta", id: TEXT_ID, delta });
         }
       } catch {
@@ -137,8 +139,10 @@ async function tryGatewayStream(
       for (const line of buffer.split("\n")) handleLine(line.trim());
     }
 
-    writer.write({ type: "text-end", id: TEXT_ID });
-    return wrote;
+    if (textStarted) {
+      writer.write({ type: "text-end", id: TEXT_ID });
+    }
+    return textStarted;
   } catch {
     return false;
   }
@@ -191,9 +195,7 @@ function toGatewayMessages(messages: UIMessage[]): GatewayMessage[] {
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => {
         const parts = (m.parts ?? []) as AnyPart[];
-        const contentParts: GatewayMessage["content"] extends Array<infer T>
-          ? T[]
-          : never = [];
+        const contentParts: GatewayContentPart[] = [];
 
         for (const part of parts) {
           if (part.type === "text" && typeof part.text === "string") {
