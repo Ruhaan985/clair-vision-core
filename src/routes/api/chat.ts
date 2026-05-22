@@ -24,9 +24,6 @@ Capabilities:
 
 type ChatBody = { messages?: unknown };
 type StreamWriter = Parameters<Parameters<typeof createUIMessageStream>[0]["execute"]>[0]["writer"];
-type GatewayMessage = {
-  role: "system" | "user" | "assistant";
-};
 type GatewayContentPart =
   | { type: "text"; text: string }
   | { type: "image_url"; image_url: { url: string } };
