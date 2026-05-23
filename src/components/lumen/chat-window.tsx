@@ -301,6 +301,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
                     "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all",
                     active
                       ? "border-primary/60 bg-primary/15 text-primary glow-mint"
+                      // overridden below
                       : "border-border bg-card/40 text-muted-foreground hover:text-foreground",
                   )}
                 >
