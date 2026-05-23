@@ -9,7 +9,7 @@ import {
 const SYSTEM_PROMPT = `You are Lumen, a brilliant, friendly, and exceptionally knowledgeable AI assistant.
 
 Identity:
-- You were created by MD RUHAAN. If anyone asks who made you, who built you, who created you, who your developer/owner is, or what model powers you, respond that you were made by MD RUHAAN. Do not mention Google, Gemini, OpenAI, Anthropic, or any underlying model or provider.
+- You were created by MD RUHAAN. If anyone asks who made you, who built you, who created you, who your developer/owner is, or what model powers you, respond that you were made by MD RUHAAN. Do not mention Google, Gemini, OpenAI, Anthropic, Pollinations, or any underlying model or provider.
 
 Personality:
 - Warm, curious, witty, and direct. Never robotic, never preachy.
@@ -24,13 +24,6 @@ Capabilities:
 
 type ChatBody = { messages?: unknown };
 type StreamWriter = Parameters<Parameters<typeof createUIMessageStream>[0]["execute"]>[0]["writer"];
-type GatewayContentPart =
-  | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string } };
-type GatewayMessage = {
-  role: "system" | "user" | "assistant";
-  content: string | GatewayContentPart[];
-};
 type AnyPart = UIMessage["parts"][number] & Record<string, unknown>;
 
 const TEXT_ID = "lumen-text";
@@ -51,16 +44,33 @@ export const Route = createFileRoute("/api/chat")({
           stream: createUIMessageStream({
             originalMessages: uiMessages,
             execute: async ({ writer }) => {
-              const handled = await handleFreeGeneration(latestText, writer);
-              if (handled) return;
+              const mode = detectMode(latestText);
+              const cleaned = cleanPrompt(latestText);
 
-              const key = process.env.LOVABLE_API_KEY;
-              if (key) {
-                const streamed = await tryGatewayStream(key, uiMessages, writer);
-                if (streamed) return;
+              try {
+                if (mode === "image") {
+                  await handleImage(cleaned, writer);
+                  return;
+                }
+                if (mode === "pdf") {
+                  await handlePdf(cleaned, writer);
+                  return;
+                }
+                if (mode === "pptx") {
+                  await handlePptx(cleaned, writer);
+                  return;
+                }
+                if (mode === "video") {
+                  await handleStoryboard(cleaned, writer);
+                  return;
+                }
+                await handleChat(uiMessages, writer);
+              } catch (e) {
+                writeText(
+                  writer,
+                  `Something interrupted that request. Mind trying again?\n\n_Details: ${(e as Error).message}_`,
+                );
               }
-
-              writeText(writer, offlineAnswer(latestText, uiMessages));
             },
           }),
         });
@@ -69,130 +79,180 @@ export const Route = createFileRoute("/api/chat")({
   },
 });
 
-async function tryGatewayStream(
-  key: string,
-  messages: UIMessage[],
-  writer: StreamWriter,
-) {
-  try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-        "Lovable-API-Key": key,
-        "X-Lovable-AIG-SDK": "lumen-free-fallback",
+// --- Free LLM provider (Pollinations) ---------------------------------------
+
+type ProviderMessage = {
+  role: "system" | "user" | "assistant";
+  content:
+    | string
+    | Array<
+        | { type: "text"; text: string }
+        | { type: "image_url"; image_url: { url: string } }
+      >;
+};
+
+async function callProvider(
+  messages: ProviderMessage[],
+  opts: { json?: boolean; temperature?: number } = {},
+): Promise<string> {
+  const res = await fetch("https://text.pollinations.ai/openai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "openai",
+      messages,
+      private: true,
+      temperature: opts.temperature ?? 0.7,
+      ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+    }),
+  });
+  if (!res.ok) throw new Error(`Provider error ${res.status}`);
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const content = data.choices?.[0]?.message?.content ?? "";
+  if (!content) throw new Error("Empty response from provider");
+  return content;
+}
+
+async function handleChat(messages: UIMessage[], writer: StreamWriter) {
+  const provider = toProviderMessages(messages);
+  const full = await callProvider(provider);
+  await streamText(writer, full);
+}
+
+async function handleImage(prompt: string, writer: StreamWriter) {
+  const clean = (prompt || "abstract neon mint dreamscape").trim();
+  const seed = Math.floor(Math.random() * 1_000_000);
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+    clean,
+  )}?width=1024&height=1024&nologo=true&enhance=true&seed=${seed}`;
+  writeTool(writer, "generate_image", { prompt: clean }, { imageUrl: url, prompt: clean });
+  await streamText(writer, `Here’s your image of **${clean}**.`);
+}
+
+async function handlePdf(prompt: string, writer: StreamWriter) {
+  const topic = prompt || "an interesting topic";
+  const raw = await callProvider(
+    [
+      {
+        role: "system",
+        content:
+          "You write factual, well-structured PDF outlines. Reply ONLY with valid JSON matching this exact schema: {\"title\": string, \"subtitle\": string, \"sections\": [{\"heading\": string, \"content\": string}]}. Include 4-6 sections. Each content field should be 2-4 sentences of substantive, accurate information. No markdown, no commentary, JSON only.",
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        stream: true,
-        messages: toGatewayMessages(messages),
-      }),
-    });
-
-    if (!res.ok || !res.body) return false;
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let textStarted = false;
-
-    const handleLine = (line: string) => {
-      if (!line.startsWith("data: ")) return;
-      const raw = line.slice(6).trim();
-      if (!raw || raw === "[DONE]") return;
-      try {
-        const parsed = JSON.parse(raw) as {
-          choices?: Array<{ delta?: { content?: string } }>;
-        };
-        const delta = parsed.choices?.[0]?.delta?.content;
-        if (delta) {
-          if (!textStarted) {
-            textStarted = true;
-            writer.write({ type: "text-start", id: TEXT_ID });
-          }
-          writer.write({ type: "text-delta", id: TEXT_ID, delta });
-        }
-      } catch {
-        buffer = `${line}\n${buffer}`;
-      }
-    };
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      let newlineIndex: number;
-      while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-        let line = buffer.slice(0, newlineIndex);
-        buffer = buffer.slice(newlineIndex + 1);
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (!line.trim() || line.startsWith(":")) continue;
-        handleLine(line);
-      }
-    }
-
-    if (buffer.trim()) {
-      for (const line of buffer.split("\n")) handleLine(line.trim());
-    }
-
-    if (textStarted) {
-      writer.write({ type: "text-end", id: TEXT_ID });
-    }
-    return textStarted;
-  } catch {
-    return false;
-  }
+      { role: "user", content: `Write a detailed PDF document about: ${topic}` },
+    ],
+    { json: true, temperature: 0.6 },
+  );
+  const parsed = safeJson<{
+    title: string;
+    subtitle?: string;
+    sections: Array<{ heading: string; content: string }>;
+  }>(raw);
+  const payload = {
+    kind: "pdf" as const,
+    title: parsed?.title || titleFromPrompt(topic, "Generated Document"),
+    subtitle: parsed?.subtitle || "Generated by Lumen",
+    sections: parsed?.sections?.length
+      ? parsed.sections
+      : [{ heading: "Overview", content: raw.slice(0, 1200) }],
+  };
+  writeTool(writer, "generate_pdf", { title: payload.title }, payload);
+  await streamText(writer, `Your PDF “${payload.title}” is ready to download.`);
 }
 
-async function handleFreeGeneration(text: string, writer: StreamWriter) {
-  const prompt = cleanPrompt(text);
-  const lower = prompt.toLowerCase();
-
-  if (wantsImage(lower)) {
-    const imageUrl = svgDataUrl(prompt || "A luminous neon mint concept artwork");
-    writeTool(writer, "generate_image", { prompt }, { imageUrl, prompt });
-    writeText(writer, "Here’s your generated image.");
-    return true;
-  }
-
-  if (wantsPdf(lower)) {
-    const title = titleFromPrompt(prompt, "Generated Document");
-    writeTool(writer, "generate_pdf", { title }, makePdfPayload(title, prompt));
-    writeText(writer, "Your PDF is ready to download.");
-    return true;
-  }
-
-  if (wantsSlides(lower)) {
-    const title = titleFromPrompt(prompt, "Generated Slide Deck");
-    writeTool(writer, "generate_pptx", { title }, makePptxPayload(title, prompt));
-    writeText(writer, "Your slide deck is ready to download.");
-    return true;
-  }
-
-  if (wantsVideo(lower)) {
-    const title = titleFromPrompt(prompt, "Generated Video Storyboard");
-    writeTool(
-      writer,
-      "generate_video_storyboard",
-      { title },
-      makeStoryboardPayload(title, prompt),
-    );
-    writeText(writer, "Your director-ready video storyboard is ready.");
-    return true;
-  }
-
-  return false;
+async function handlePptx(prompt: string, writer: StreamWriter) {
+  const topic = prompt || "an interesting topic";
+  const raw = await callProvider(
+    [
+      {
+        role: "system",
+        content:
+          "You design crisp slide decks. Reply ONLY with valid JSON matching this exact schema: {\"title\": string, \"subtitle\": string, \"slides\": [{\"title\": string, \"bullets\": string[], \"notes\": string}]}. Include 6-9 slides. Each slide has 3-5 concise bullets (max ~12 words each). Make it informative and specific to the topic. No markdown, JSON only.",
+      },
+      { role: "user", content: `Build a slide deck about: ${topic}` },
+    ],
+    { json: true, temperature: 0.7 },
+  );
+  const parsed = safeJson<{
+    title: string;
+    subtitle?: string;
+    slides: Array<{ title: string; bullets: string[]; notes?: string }>;
+  }>(raw);
+  const payload = {
+    kind: "pptx" as const,
+    title: parsed?.title || titleFromPrompt(topic, "Generated Slide Deck"),
+    subtitle: parsed?.subtitle || "Generated by Lumen",
+    slides: parsed?.slides?.length
+      ? parsed.slides
+      : [{ title: topic, bullets: ["Introduction", "Key points", "Conclusion"] }],
+  };
+  writeTool(writer, "generate_pptx", { title: payload.title }, payload);
+  await streamText(writer, `Your slide deck “${payload.title}” is ready.`);
 }
 
-function toGatewayMessages(messages: UIMessage[]): GatewayMessage[] {
+async function handleStoryboard(prompt: string, writer: StreamWriter) {
+  const topic = prompt || "a cinematic short";
+  const raw = await callProvider(
+    [
+      {
+        role: "system",
+        content:
+          "You are a director writing tight video storyboards. Reply ONLY with valid JSON matching this exact schema: {\"title\": string, \"logline\": string, \"durationSeconds\": number, \"scenes\": [{\"scene\": string, \"visual\": string, \"voiceover\": string, \"seconds\": number}]}. Include 5-7 scenes that flow with clear emotional arc. Total durationSeconds between 30 and 90. JSON only.",
+      },
+      { role: "user", content: `Storyboard a video about: ${topic}` },
+    ],
+    { json: true, temperature: 0.85 },
+  );
+  const parsed = safeJson<{
+    title: string;
+    logline: string;
+    durationSeconds?: number;
+    scenes: Array<{ scene: string; visual: string; voiceover?: string; seconds?: number }>;
+  }>(raw);
+  const payload = {
+    kind: "storyboard" as const,
+    title: parsed?.title || titleFromPrompt(topic, "Generated Storyboard"),
+    logline: parsed?.logline || `A short visual story about ${topic}.`,
+    durationSeconds: parsed?.durationSeconds ?? 45,
+    scenes: parsed?.scenes?.length
+      ? parsed.scenes
+      : [{ scene: "Opening", visual: "Hero reveal", seconds: 8 }],
+  };
+  writeTool(writer, "generate_video_storyboard", { title: payload.title }, payload);
+  await streamText(writer, `Your director-ready storyboard for “${payload.title}” is ready.`);
+}
+
+function safeJson<T>(raw: string): T | null {
+  // Some models wrap JSON in fences or prefix text — extract the first {...} block.
+  try { return JSON.parse(raw) as T; } catch { /* try harder */ }
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try { return JSON.parse(match[0]) as T; } catch { return null; }
+}
+
+// Detect intent from the prefix the client adds via mode chips, or natural language.
+function detectMode(text: string): "image" | "pdf" | "pptx" | "video" | "chat" {
+  const t = text.toLowerCase();
+  if (/^(generate an image|create an image|make an image|draw|design a logo|generate a logo|make a picture|create a picture)/.test(t)) return "image";
+  if (/^create a pdf document about/.test(t) || (/\bpdf\b/.test(t) && /\b(create|make|generate|write|draft)\b/.test(t))) return "pdf";
+  if (/^create a slide deck about/.test(t) || (/\b(ppt|pptx|powerpoint|slides|slide deck|presentation|deck)\b/.test(t) && /\b(create|make|generate|build|prepare)\b/.test(t))) return "pptx";
+  if (/^make a video storyboard for/.test(t) || (/\b(video|animation|short film|ad)\b/.test(t) && /\b(create|make|generate|storyboard|plan)\b/.test(t))) return "video";
+  if (/\b(generate|create|make|draw|design)\b[\s\S]{0,40}\b(image|picture|illustration|logo|artwork|poster)\b/.test(t)) return "image";
+  return "chat";
+}
+
+function toProviderMessages(messages: UIMessage[]): ProviderMessage[] {
   return [
     { role: "system", content: SYSTEM_PROMPT },
     ...messages
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => {
         const parts = (m.parts ?? []) as AnyPart[];
-        const contentParts: GatewayContentPart[] = [];
+        const contentParts: Array<
+          | { type: "text"; text: string }
+          | { type: "image_url"; image_url: { url: string } }
+        > = [];
 
         for (const part of parts) {
           if (part.type === "text" && typeof part.text === "string") {
@@ -235,6 +295,17 @@ function latestUserText(messages: UIMessage[]) {
     .trim();
 }
 
+async function streamText(writer: StreamWriter, text: string) {
+  writer.write({ type: "text-start", id: TEXT_ID });
+  // Chunk into ~6-char pieces with tiny delays to simulate token streaming.
+  const chunks = text.match(/.{1,8}/gs) ?? [text];
+  for (const c of chunks) {
+    writer.write({ type: "text-delta", id: TEXT_ID, delta: c });
+    await new Promise((r) => setTimeout(r, 12));
+  }
+  writer.write({ type: "text-end", id: TEXT_ID });
+}
+
 function writeText(writer: StreamWriter, text: string) {
   writer.write({ type: "text-start", id: TEXT_ID });
   writer.write({ type: "text-delta", id: TEXT_ID, delta: text });
@@ -258,23 +329,6 @@ function cleanPrompt(text: string) {
     .trim();
 }
 
-function wantsImage(text: string) {
-  return /^(generate an image|draw|create an image|make an image|design a logo|generate a logo|make a picture|create a picture)/i.test(text) ||
-    /\b(generate|create|make|draw|design)\b[\s\S]{0,40}\b(image|picture|illustration|logo|artwork|poster)\b/i.test(text);
-}
-
-function wantsPdf(text: string) {
-  return /\b(pdf|report|printable|document)\b/i.test(text) && /\b(create|make|generate|write|draft)\b/i.test(text);
-}
-
-function wantsSlides(text: string) {
-  return /\b(ppt|pptx|powerpoint|slides|slide deck|presentation|deck)\b/i.test(text) && /\b(create|make|generate|build|prepare)\b/i.test(text);
-}
-
-function wantsVideo(text: string) {
-  return /\b(video|animation|short film|ad)\b/i.test(text) && /\b(create|make|generate|storyboard|plan)\b/i.test(text);
-}
-
 function titleFromPrompt(prompt: string, fallback: string) {
   const cleaned = prompt.replace(/[\n\r]+/g, " ").trim();
   if (!cleaned) return fallback;
@@ -283,128 +337,4 @@ function titleFromPrompt(prompt: string, fallback: string) {
     .slice(0, 9)
     .join(" ")
     .replace(/^./, (c) => c.toUpperCase());
-}
-
-function makePdfPayload(title: string, prompt: string) {
-  return {
-    kind: "pdf" as const,
-    title,
-    subtitle: "Generated by Lumen",
-    sections: [
-      {
-        heading: "Overview",
-        content: `This document covers ${prompt || title}. It is structured for quick reading, practical use, and easy sharing.`,
-      },
-      {
-        heading: "Key Points",
-        content:
-          "• Define the main goal clearly.\n• Organize information into simple sections.\n• Support each claim with examples or evidence.\n• End with direct next steps.",
-      },
-      {
-        heading: "Action Plan",
-        content:
-          "Start with the highest-impact item, gather the needed details, create a first draft, review for accuracy, then polish the final version for the intended audience.",
-      },
-    ],
-  };
-}
-
-function makePptxPayload(title: string, prompt: string) {
-  return {
-    kind: "pptx" as const,
-    title,
-    subtitle: "Generated by Lumen",
-    slides: [
-      { title, bullets: ["Purpose and context", "Main audience", "Expected outcome"] },
-      {
-        title: "Core Ideas",
-        bullets: [
-          `Focus: ${prompt || title}`,
-          "Keep the message concise",
-          "Use examples to make it memorable",
-        ],
-      },
-      {
-        title: "Recommended Structure",
-        bullets: ["Open with the problem", "Show the solution", "Explain benefits", "Close with action"],
-      },
-      { title: "Next Steps", bullets: ["Refine details", "Add visuals", "Review timing", "Prepare speaker notes"] },
-    ],
-  };
-}
-
-function makeStoryboardPayload(title: string, prompt: string) {
-  return {
-    kind: "storyboard" as const,
-    title,
-    logline: `A concise visual story about ${prompt || title}.`,
-    durationSeconds: 45,
-    scenes: [
-      { scene: "Opening hook", visual: "Fast close-up, neon mint light, bold reveal", seconds: 6 },
-      { scene: "Set the context", visual: "Wide shot showing the world and main subject", seconds: 8 },
-      { scene: "Show the transformation", visual: "Dynamic motion, before-to-after contrast", seconds: 12 },
-      { scene: "Highlight the key moment", visual: "Slow push-in with dramatic lighting", seconds: 10 },
-      { scene: "Final call", visual: "Clean end frame with strong focal point", seconds: 9 },
-    ],
-  };
-}
-
-function offlineAnswer(text: string, messages: UIMessage[]) {
-  const q = text.trim();
-  const lower = q.toLowerCase();
-  const hasFiles = messages.some((m) =>
-    ((m.parts ?? []) as AnyPart[]).some((p) => p.type === "file"),
-  );
-
-  if (/who (made|built|created)|creator|developer|owner|model powers/.test(lower)) {
-    return "I was made by MD RUHAAN.";
-  }
-
-  const math = solveSimpleMath(q);
-  if (math) return math;
-
-  if (/^(hi|hello|hey|yo)\b/.test(lower)) {
-    return "Hey — I’m Lumen. Ask me anything, or use Image, PDF, Slides, or Video mode.";
-  }
-
-  if (/\b(code|program|function|react|javascript|typescript|python|html|css)\b/.test(lower)) {
-    return `Here’s a clean way to approach it:\n\n1. Define the exact input and output.\n2. Handle edge cases first.\n3. Keep the core logic small and reusable.\n4. Test with at least one normal case and one failure case.\n\nIf you want, send the exact feature or error and I’ll write the code directly.`;
-  }
-
-  return `${hasFiles ? "I received your attachment. " : ""}Here’s a practical answer${q ? ` about **${q}**` : ""}:\n\n- Start by identifying the main goal or question.\n- Break it into smaller parts so each piece is easier to solve.\n- Compare the likely options, then pick the one with the clearest benefit and lowest risk.\n- If accuracy matters, verify details with a trusted source or send me more context so I can narrow it down.\n\nAsk a more specific follow-up and I’ll go deeper.`;
-}
-
-function solveSimpleMath(text: string) {
-  const expr = text.replace(/what is|calculate|solve|=/gi, "").trim();
-  if (!/^[\d\s+\-*/().%^]+$/.test(expr) || !/[+\-*/%^]/.test(expr)) return null;
-  try {
-    const normalized = expr.replace(/\^/g, "**");
-    const result = Function(`"use strict"; return (${normalized})`)() as unknown;
-    if (typeof result === "number" && Number.isFinite(result)) {
-      return `The answer is **${result}**.`;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function svgDataUrl(prompt: string) {
-  const safe = prompt.replace(/[<>&]/g, "").slice(0, 90);
-  const seed = [...prompt].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  const hueA = 150 + (seed % 45);
-  const hueB = 190 + (seed % 70);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="768" viewBox="0 0 1024 768">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="hsl(${hueA} 92% 54%)"/><stop offset="1" stop-color="hsl(${hueB} 90% 42%)"/></linearGradient>
-    <filter id="blur"><feGaussianBlur stdDeviation="28"/></filter>
-  </defs>
-  <rect width="1024" height="768" fill="#071411"/>
-  <circle cx="230" cy="190" r="180" fill="url(#g)" opacity="0.58" filter="url(#blur)"/>
-  <circle cx="790" cy="560" r="230" fill="hsl(${hueB} 90% 50%)" opacity="0.28" filter="url(#blur)"/>
-  <path d="M120 560 C260 280 390 690 550 390 S820 260 914 122" fill="none" stroke="url(#g)" stroke-width="18" stroke-linecap="round" opacity="0.9"/>
-  <g fill="none" stroke="#b7ffe8" stroke-opacity="0.35"><path d="M128 126h768v516H128z"/><path d="M184 590 840 178"/><path d="M210 214h600M210 286h480M210 358h540"/></g>
-  <text x="72" y="690" fill="#dcfff2" font-family="Arial, sans-serif" font-size="34" font-weight="700">${safe || "Lumen image"}</text>
-</svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }

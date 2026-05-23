@@ -221,16 +221,16 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           <Conversation className="h-full">
             <ConversationContent className="mx-auto w-full max-w-3xl px-4 py-6">
               {messages.map((m) => (
-                <Message from={m.role} key={m.id} className="mb-5">
+                <Message from={m.role} key={m.id} className="mb-5 animate-msg-in">
                   <MessageContent>
                     <MessageBody message={m} />
                   </MessageContent>
                 </Message>
               ))}
               {status === "submitted" && (
-                <Message from="assistant" className="mb-5">
+                <Message from="assistant" className="mb-5 animate-msg-in">
                   <MessageContent>
-                    <Shimmer>Thinking…</Shimmer>
+                    <ThinkingIndicator />
                   </MessageContent>
                 </Message>
               )}
@@ -314,6 +314,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             className={cn(
               "group relative flex items-end gap-2 rounded-2xl border border-border bg-card/80 p-2 pl-4 shadow-lg transition-all",
               "focus-within:border-primary/60 focus-within:glow-mint",
+              input.length > 0 && !isBusy && "is-typing border-primary/40",
             )}
             onDragOver={(e) => {
               e.preventDefault();
@@ -719,6 +720,18 @@ function ImageGeneratingCard({ prompt }: { prompt: string }) {
           “{prompt}”
         </p>
       )}
+    </div>
+  );
+}
+
+function ThinkingIndicator() {
+  return (
+    <div className="inline-flex items-center gap-3 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-card/60 to-card/40 px-4 py-2.5">
+      <Sparkles className="h-4 w-4 text-primary animate-float-y" />
+      <Shimmer className="text-xs">Lumen is thinking</Shimmer>
+      <span className="dot-bounce inline-flex items-center" aria-hidden>
+        <span /><span /><span />
+      </span>
     </div>
   );
 }
