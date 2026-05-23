@@ -315,6 +315,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               "group relative flex items-end gap-2 rounded-2xl border border-border bg-card/80 p-2 pl-4 shadow-lg transition-all",
               "focus-within:border-primary/60 focus-within:glow-mint",
             )}
+          + ""
             onDragOver={(e) => {
               e.preventDefault();
             }}
