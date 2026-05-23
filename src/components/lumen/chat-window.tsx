@@ -723,3 +723,15 @@ function ImageGeneratingCard({ prompt }: { prompt: string }) {
     </div>
   );
 }
+
+function ThinkingIndicator() {
+  return (
+    <div className="inline-flex items-center gap-3 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-card/60 to-card/40 px-4 py-2.5">
+      <Sparkles className="h-4 w-4 text-primary animate-float-y" />
+      <Shimmer className="text-xs">Lumen is thinking</Shimmer>
+      <span className="dot-bounce inline-flex items-center" aria-hidden>
+        <span /><span /><span />
+      </span>
+    </div>
+  );
+}
