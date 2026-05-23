@@ -221,16 +221,16 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           <Conversation className="h-full">
             <ConversationContent className="mx-auto w-full max-w-3xl px-4 py-6">
               {messages.map((m) => (
-                <Message from={m.role} key={m.id} className="mb-5">
+                <Message from={m.role} key={m.id} className="mb-5 animate-msg-in">
                   <MessageContent>
                     <MessageBody message={m} />
                   </MessageContent>
                 </Message>
               ))}
               {status === "submitted" && (
-                <Message from="assistant" className="mb-5">
+                <Message from="assistant" className="mb-5 animate-msg-in">
                   <MessageContent>
-                    <Shimmer>Thinking…</Shimmer>
+                    <ThinkingIndicator />
                   </MessageContent>
                 </Message>
               )}
