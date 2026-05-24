@@ -262,6 +262,13 @@
 }
 .animate-msg-in { animation: msg-in 0.35s ease-out both; }
 
+/* User message slides in from the right */
+@keyframes msg-in-right {
+  from { opacity: 0; transform: translateX(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.animate-msg-in-right { animation: msg-in-right 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
 /* Aurora background drift */
 @keyframes aurora-drift {
   0%, 100% { background-position: 0% 0%, 100% 0%, 50% 100%; }
