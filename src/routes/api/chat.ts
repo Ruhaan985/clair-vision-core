@@ -149,36 +149,41 @@ async function handleChat(messages: UIMessage[], writer: StreamWriter, request: 
     if (ctx) provider.splice(1, 0, { role: "system", content: ctx });
   }
 
-  // Try Lovable AI Gateway with true SSE streaming for minimum latency.
-  const lovableKey = (globalThis as { process?: { env?: Record<string, string> } }).process?.env?.LOVABLE_API_KEY;
-  if (lovableKey) {
-    const streamed = await streamFromLovable(provider, writer, lovableKey).catch(() => false);
-    if (streamed) return;
+  // Stream directly from Pollinations for low latency, with model fallbacks on 429.
+  const models = ["openai-fast", "openai", "mistral", "qwen-coder"];
+  for (const model of models) {
+    const streamed = await streamFromPollinations(provider, writer, model).catch(() => "error" as const);
+    if (streamed === true) return;
+    if (streamed === "rate-limited") continue;
+    if (streamed === false) break; // produced no tokens but didn't fail; stop trying
   }
 
-  // Fallback: non-streaming provider + instant write.
-  const full = await callProvider(provider);
-  writeText(writer, full);
+  // Final fallback: non-streaming call + instant write.
+  try {
+    const full = await callProvider(provider);
+    writeText(writer, full);
+  } catch {
+    writeText(writer, "I'm getting a lot of requests right now. Please try again in a few seconds.");
+  }
 }
 
-async function streamFromLovable(
+async function streamFromPollinations(
   messages: ProviderMessage[],
   writer: StreamWriter,
-  apiKey: string,
-): Promise<boolean> {
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  model: string,
+): Promise<boolean | "rate-limited"> {
+  const res = await fetch("https://text.pollinations.ai/openai", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model,
       messages,
       stream: true,
+      private: true,
       temperature: 0.7,
     }),
   });
+  if (res.status === 429 || res.status === 402) return "rate-limited";
   if (!res.ok || !res.body) return false;
 
   const reader = res.body.getReader();
