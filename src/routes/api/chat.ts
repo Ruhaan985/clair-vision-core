@@ -64,7 +64,7 @@ export const Route = createFileRoute("/api/chat")({
                   await handleStoryboard(cleaned, writer);
                   return;
                 }
-                await handleChat(uiMessages, writer);
+                await handleChat(uiMessages, writer, request);
               } catch (e) {
                 writeText(
                   writer,
@@ -95,6 +95,30 @@ async function callProvider(
   messages: ProviderMessage[],
   opts: { json?: boolean; temperature?: number } = {},
 ): Promise<string> {
+  // Try Lovable AI Gateway first (fast, reliable), fall back to Pollinations.
+  const lovableKey = (globalThis as { process?: { env?: Record<string, string> } }).process?.env?.LOVABLE_API_KEY;
+  if (lovableKey) {
+    try {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${lovableKey}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages,
+          temperature: opts.temperature ?? 0.7,
+          ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+        const content = data.choices?.[0]?.message?.content ?? "";
+        if (content) return content;
+      }
+    } catch { /* fall through */ }
+  }
   const res = await fetch("https://text.pollinations.ai/openai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -115,10 +139,126 @@ async function callProvider(
   return content;
 }
 
-async function handleChat(messages: UIMessage[], writer: StreamWriter) {
+async function handleChat(messages: UIMessage[], writer: StreamWriter, request: Request) {
   const provider = toProviderMessages(messages);
+
+  // If user asks about weather/location, enrich with live data.
+  const latest = latestUserText(messages).toLowerCase();
+  if (/\b(weather|forecast|temperature|raining|rain|sunny|humidity|wind|climate|hot|cold|snow|where am i|my location|my city)\b/.test(latest)) {
+    const ctx = await fetchLocationWeather(request).catch(() => null);
+    if (ctx) provider.splice(1, 0, { role: "system", content: ctx });
+  }
+
+  // Try Lovable AI Gateway with true SSE streaming for minimum latency.
+  const lovableKey = (globalThis as { process?: { env?: Record<string, string> } }).process?.env?.LOVABLE_API_KEY;
+  if (lovableKey) {
+    const streamed = await streamFromLovable(provider, writer, lovableKey).catch(() => false);
+    if (streamed) return;
+  }
+
+  // Fallback: non-streaming provider + instant write.
   const full = await callProvider(provider);
-  await streamText(writer, full);
+  writeText(writer, full);
+}
+
+async function streamFromLovable(
+  messages: ProviderMessage[],
+  writer: StreamWriter,
+  apiKey: string,
+): Promise<boolean> {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages,
+      stream: true,
+      temperature: 0.7,
+    }),
+  });
+  if (!res.ok || !res.body) return false;
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let started = false;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let nl;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      const data = line.slice(5).trim();
+      if (!data || data === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(data) as {
+          choices?: Array<{ delta?: { content?: string } }>;
+        };
+        const delta = parsed.choices?.[0]?.delta?.content;
+        if (delta) {
+          if (!started) { writer.write({ type: "text-start", id: TEXT_ID }); started = true; }
+          writer.write({ type: "text-delta", id: TEXT_ID, delta });
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  if (started) writer.write({ type: "text-end", id: TEXT_ID });
+  return started;
+}
+
+async function fetchLocationWeather(request: Request): Promise<string | null> {
+  // Cloudflare provides location headers; fall back to IP geolocation.
+  const h = request.headers;
+  let lat = parseFloat(h.get("cf-iplatitude") || "");
+  let lon = parseFloat(h.get("cf-iplongitude") || "");
+  let city = h.get("cf-ipcity") || "";
+  let country = h.get("cf-ipcountry") || "";
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    const ip = (h.get("cf-connecting-ip") || h.get("x-forwarded-for") || "").split(",")[0].trim();
+    try {
+      const geo = await fetch(`https://ipapi.co/${ip || ""}/json/`).then((r) => r.json()) as {
+        latitude?: number; longitude?: number; city?: string; country_name?: string;
+      };
+      if (geo.latitude && geo.longitude) {
+        lat = geo.latitude; lon = geo.longitude;
+        city = city || geo.city || ""; country = country || geo.country_name || "";
+      }
+    } catch { /* ignore */ }
+  }
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+  try {
+    const w = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=3`,
+    ).then((r) => r.json()) as {
+      current?: Record<string, number>;
+      daily?: { time: string[]; temperature_2m_max: number[]; temperature_2m_min: number[]; precipitation_probability_max: number[]; weather_code: number[] };
+    };
+    const c = w.current ?? {};
+    const d = w.daily;
+    const lines: string[] = [];
+    lines.push(`LIVE_LOCATION: ${city || "unknown city"}${country ? ", " + country : ""} (lat ${lat.toFixed(2)}, lon ${lon.toFixed(2)})`);
+    if (c.temperature_2m !== undefined) {
+      lines.push(`LIVE_WEATHER_NOW: ${c.temperature_2m}°C (feels ${c.apparent_temperature ?? "?"}°C), humidity ${c.relative_humidity_2m ?? "?"}%, wind ${c.wind_speed_10m ?? "?"} km/h, code ${c.weather_code ?? "?"}, ${c.is_day ? "day" : "night"}.`);
+    }
+    if (d?.time?.length) {
+      const fc = d.time.slice(0, 3).map((day, i) =>
+        `${day}: ${d.temperature_2m_min[i]}°–${d.temperature_2m_max[i]}°C, rain ${d.precipitation_probability_max[i]}%, code ${d.weather_code[i]}`,
+      ).join("; ");
+      lines.push(`LIVE_FORECAST_3D: ${fc}`);
+    }
+    lines.push("Use this live data naturally in your answer; convert codes to plain descriptions (e.g. 0=clear, 1-3=partly cloudy, 45/48=fog, 51-67=rain, 71-77=snow, 80-82=showers, 95-99=thunderstorm). Mention the city.");
+    return lines.join("\n");
+  } catch {
+    return `LIVE_LOCATION: ${city || "unknown"}${country ? ", " + country : ""} (lat ${lat}, lon ${lon}). Weather lookup failed.`;
+  }
 }
 
 async function handleImage(prompt: string, writer: StreamWriter) {
@@ -297,12 +437,7 @@ function latestUserText(messages: UIMessage[]) {
 
 async function streamText(writer: StreamWriter, text: string) {
   writer.write({ type: "text-start", id: TEXT_ID });
-  // Chunk into ~6-char pieces with tiny delays to simulate token streaming.
-  const chunks = text.match(/.{1,8}/gs) ?? [text];
-  for (const c of chunks) {
-    writer.write({ type: "text-delta", id: TEXT_ID, delta: c });
-    await new Promise((r) => setTimeout(r, 12));
-  }
+  writer.write({ type: "text-delta", id: TEXT_ID, delta: text });
   writer.write({ type: "text-end", id: TEXT_ID });
 }
 
