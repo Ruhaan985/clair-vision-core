@@ -119,6 +119,10 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [mode, setMode] = useState<string>("chat");
+  const [autoTitle, setAutoTitle] = useState<string | null>(
+    initial && initial.title && initial.title !== "New chat" ? initial.title : null,
+  );
+  const titledRef = useRef(!!autoTitle);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -129,13 +133,36 @@ export function ChatWindow({ threadId }: { threadId: string }) {
     if (messages.length === 0) return;
     upsertThread({
       id: threadId,
-      title: deriveTitle(messages),
+      title: autoTitle || deriveTitle(messages),
       createdAt: initial?.createdAt ?? Date.now(),
       updatedAt: Date.now(),
       messages,
     });
     window.dispatchEvent(new CustomEvent("lumen:threads-changed"));
-  }, [messages, threadId, initial?.createdAt]);
+  }, [messages, threadId, initial?.createdAt, autoTitle]);
+
+  // Auto-generate a catchy title once the first assistant reply lands.
+  useEffect(() => {
+    if (titledRef.current) return;
+    if (status === "streaming" || status === "submitted") return;
+    const firstUser = messages.find((m) => m.role === "user");
+    const firstAssistant = messages.find((m) => m.role === "assistant");
+    if (!firstUser || !firstAssistant) return;
+    titledRef.current = true;
+    const userText = firstUser.parts.map((p) => (p.type === "text" ? p.text : "")).join(" ").trim();
+    const assistantText = firstAssistant.parts.map((p) => (p.type === "text" ? p.text : "")).join(" ").trim();
+    if (!userText) return;
+    fetch("/api/title", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userText, assistantText }),
+    })
+      .then((r) => r.json())
+      .then((d: { title?: string }) => {
+        if (d.title) setAutoTitle(d.title);
+      })
+      .catch(() => { /* keep fallback */ });
+  }, [messages, status]);
 
   // Keep textarea focused
   useEffect(() => {
@@ -221,7 +248,14 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           <Conversation className="h-full">
             <ConversationContent className="mx-auto w-full max-w-3xl px-4 py-6">
               {messages.map((m) => (
-                <Message from={m.role} key={m.id} className="mb-5 animate-msg-in">
+                <Message
+                  from={m.role}
+                  key={m.id}
+                  className={cn(
+                    "mb-5",
+                    m.role === "user" ? "animate-msg-in-right" : "animate-msg-in",
+                  )}
+                >
                   <MessageContent>
                     <MessageBody message={m} />
                   </MessageContent>
