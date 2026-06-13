@@ -829,7 +829,7 @@ function StoryboardCard({ payload }: { payload: StoryboardPayload }) {
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/60 backdrop-blur-sm">
               <Sparkles className="h-6 w-6 animate-pulse text-primary" />
               <Shimmer className="text-xs">
-                Rendering scenes… {loaded}/{scenesWithImages.length}
+                {`Rendering scenes… ${loaded}/${scenesWithImages.length}`}
               </Shimmer>
             </div>
           )}
