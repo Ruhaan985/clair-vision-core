@@ -343,7 +343,7 @@ async function handleStoryboard(prompt: string, writer: StreamWriter) {
       {
         role: "system",
         content:
-          "You are a director writing tight video storyboards. Reply ONLY with valid JSON matching this exact schema: {\"title\": string, \"logline\": string, \"durationSeconds\": number, \"scenes\": [{\"scene\": string, \"visual\": string, \"voiceover\": string, \"seconds\": number}]}. Include 5-7 scenes that flow with clear emotional arc. Total durationSeconds between 30 and 90. JSON only.",
+          "You are a director writing tight video storyboards. Reply ONLY with valid JSON matching this exact schema: {\"title\": string, \"logline\": string, \"durationSeconds\": number, \"scenes\": [{\"scene\": string, \"visual\": string, \"voiceover\": string, \"seconds\": number, \"imagePrompt\": string}]}. Include 5-7 scenes that flow with a clear emotional arc. Each scene's imagePrompt must be a vivid, single-sentence, cinematic still-frame description (camera, subject, lighting, mood, palette) suitable for an AI image generator. Total durationSeconds between 20 and 60. JSON only.",
       },
       { role: "user", content: `Storyboard a video about: ${topic}` },
     ],
@@ -353,19 +353,37 @@ async function handleStoryboard(prompt: string, writer: StreamWriter) {
     title: string;
     logline: string;
     durationSeconds?: number;
-    scenes: Array<{ scene: string; visual: string; voiceover?: string; seconds?: number }>;
+    scenes: Array<{ scene: string; visual: string; voiceover?: string; seconds?: number; imagePrompt?: string }>;
   }>(raw);
+
+  const baseScenes = parsed?.scenes?.length
+    ? parsed.scenes
+    : [{ scene: "Opening", visual: "Hero reveal", seconds: 6, imagePrompt: topic }];
+
+  // Generate a real Pollinations image URL for each scene so the player has actual frames.
+  const scenes = baseScenes.map((s, i) => {
+    const promptText = s.imagePrompt || s.visual || s.scene || topic;
+    const seed = Math.floor(Math.random() * 1_000_000) + i;
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+      `${promptText}, cinematic still, dramatic lighting, ultra detailed, film grain`,
+    )}?width=1280&height=720&nologo=true&enhance=true&seed=${seed}`;
+    return { ...s, imageUrl, seconds: s.seconds ?? 5 };
+  });
+
   const payload = {
     kind: "storyboard" as const,
     title: parsed?.title || titleFromPrompt(topic, "Generated Storyboard"),
     logline: parsed?.logline || `A short visual story about ${topic}.`,
-    durationSeconds: parsed?.durationSeconds ?? 45,
-    scenes: parsed?.scenes?.length
-      ? parsed.scenes
-      : [{ scene: "Opening", visual: "Hero reveal", seconds: 8 }],
+    durationSeconds:
+      parsed?.durationSeconds ??
+      scenes.reduce((acc, s) => acc + (s.seconds || 5), 0),
+    scenes,
   };
   writeTool(writer, "generate_video_storyboard", { title: payload.title }, payload);
-  await streamText(writer, `Your director-ready storyboard for “${payload.title}” is ready.`);
+  await streamText(
+    writer,
+    `Your video “${payload.title}” is ready — press play to watch, or download it as a clip.`,
+  );
 }
 
 function safeJson<T>(raw: string): T | null {

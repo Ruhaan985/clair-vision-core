@@ -24,6 +24,8 @@ import {
   MessageCircle,
   Download,
   Film,
+  Play,
+  Pause,
 } from "lucide-react";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -684,55 +686,356 @@ function DocumentCard({
 }
 
 function StoryboardCard({ payload }: { payload: StoryboardPayload }) {
+  const scenesWithImages = payload.scenes.filter((s) => !!s.imageUrl);
+  const hasVideo = scenesWithImages.length > 0;
+  const [loaded, setLoaded] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [downloading, setDownloading] = useState(false);
+  const imgRefs = useRef<Array<HTMLImageElement | null>>([]);
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef<number>(0);
+  const sceneStartRef = useRef<number>(0);
+
+  const totalSeconds = useMemo(
+    () => scenesWithImages.reduce((a, s) => a + (s.seconds || 5), 0) || 1,
+    [scenesWithImages],
+  );
+
+  // Preload images.
+  useEffect(() => {
+    if (!hasVideo) return;
+    let live = true;
+    let count = 0;
+    scenesWithImages.forEach((s) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = img.onerror = () => {
+        if (!live) return;
+        count += 1;
+        setLoaded(count);
+      };
+      img.src = s.imageUrl!;
+    });
+    return () => {
+      live = false;
+    };
+  }, [hasVideo, scenesWithImages]);
+
+  const allReady = loaded >= scenesWithImages.length && hasVideo;
+
+  // Play loop.
+  useEffect(() => {
+    if (!playing) return;
+    startRef.current = performance.now();
+    sceneStartRef.current = performance.now();
+    let idx = current;
+    const tick = (now: number) => {
+      const sceneDur = (scenesWithImages[idx]?.seconds || 5) * 1000;
+      const elapsedScene = now - sceneStartRef.current;
+      const elapsedTotal = (now - startRef.current) / 1000;
+      setProgress(Math.min(1, elapsedTotal / totalSeconds));
+      if (elapsedScene >= sceneDur) {
+        idx += 1;
+        if (idx >= scenesWithImages.length) {
+          setPlaying(false);
+          setCurrent(0);
+          setProgress(0);
+          return;
+        }
+        sceneStartRef.current = now;
+        setCurrent(idx);
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [playing, scenesWithImages, totalSeconds, current]);
+
+  const togglePlay = () => {
+    if (!allReady) return;
+    if (playing) {
+      setPlaying(false);
+    } else {
+      if (current >= scenesWithImages.length) setCurrent(0);
+      setPlaying(true);
+    }
+  };
+
+  const downloadVideo = async () => {
+    if (!allReady || downloading) return;
+    setDownloading(true);
+    try {
+      const blob = await recordSlideshow(scenesWithImages, payload.title);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${payload.title.replace(/[^a-z0-9-_]+/gi, "_").slice(0, 60) || "video"}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      toast.error("Couldn't render the video — your browser may not support it.");
+      // eslint-disable-next-line no-console
+      console.error(e);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="overflow-hidden rounded-xl border border-primary/40 bg-card/40 glow-mint">
       <div className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-r from-primary/15 to-transparent px-4 py-2.5">
         <Film className="h-4 w-4 text-primary" />
         <div className="min-w-0 flex-1">
           <div className="text-[10px] uppercase tracking-wider text-primary/80">
-            Video storyboard
+            Generated video
           </div>
           <div className="truncate text-sm font-semibold">{payload.title}</div>
         </div>
-        {payload.durationSeconds && (
-          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] text-primary">
-            ~{payload.durationSeconds}s
-          </span>
-        )}
+        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] text-primary">
+          ~{Math.round(totalSeconds)}s
+        </span>
       </div>
+
+      {hasVideo && (
+        <div className="relative aspect-video w-full overflow-hidden bg-black">
+          {scenesWithImages.map((s, i) => (
+            <img
+              key={i}
+              ref={(el) => { imgRefs.current[i] = el; }}
+              src={s.imageUrl}
+              alt={s.scene}
+              className={cn(
+                "absolute inset-0 h-full w-full object-cover transition-opacity duration-700",
+                i === current ? "opacity-100" : "opacity-0",
+                i === current && playing ? "ken-burns" : "",
+              )}
+              style={
+                i === current && playing
+                  ? { animationDuration: `${(s.seconds || 5)}s` }
+                  : undefined
+              }
+              crossOrigin="anonymous"
+            />
+          ))}
+
+          {/* Loading overlay */}
+          {!allReady && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/60 backdrop-blur-sm">
+              <Sparkles className="h-6 w-6 animate-pulse text-primary" />
+              <Shimmer className="text-xs">
+                {`Rendering scenes… ${loaded}/${scenesWithImages.length}`}
+              </Shimmer>
+            </div>
+          )}
+
+          {/* Caption */}
+          {playing && scenesWithImages[current]?.voiceover && (
+            <div className="absolute bottom-12 left-0 right-0 px-6 text-center">
+              <span className="rounded-md bg-black/60 px-3 py-1 text-xs text-white shadow scene-fade">
+                {scenesWithImages[current].voiceover}
+              </span>
+            </div>
+          )}
+
+          {/* Play overlay */}
+          {!playing && allReady && (
+            <button
+              type="button"
+              onClick={togglePlay}
+              className="absolute inset-0 flex items-center justify-center bg-black/30 transition hover:bg-black/40"
+              aria-label="Play"
+            >
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/90 text-primary-foreground glow-mint">
+                <Play className="h-7 w-7 translate-x-0.5" fill="currentColor" />
+              </span>
+            </button>
+          )}
+
+          {/* Progress + controls */}
+          <div className="absolute bottom-0 left-0 right-0 flex items-center gap-2 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
+            <button
+              type="button"
+              onClick={togglePlay}
+              disabled={!allReady}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 disabled:opacity-50"
+              aria-label={playing ? "Pause" : "Play"}
+            >
+              {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" fill="currentColor" />}
+            </button>
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/15">
+              <div
+                className="h-full bg-primary transition-[width] duration-100"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-white/80 tabular-nums">
+              {Math.floor(progress * totalSeconds)}s / {Math.round(totalSeconds)}s
+            </span>
+          </div>
+        </div>
+      )}
+
       <p className="px-4 pt-3 text-xs italic text-muted-foreground">
         {payload.logline}
       </p>
-      <ol className="space-y-2 p-4">
-        {payload.scenes.map((s, i) => (
-          <li
-            key={i}
-            className="flex gap-3 rounded-lg border border-border/60 bg-background/40 p-3"
+
+      <div className="flex items-center justify-between gap-2 px-4 pb-3 pt-3">
+        <div className="text-[11px] text-muted-foreground">
+          {scenesWithImages.length} scenes
+        </div>
+        {hasVideo && (
+          <button
+            type="button"
+            onClick={downloadVideo}
+            disabled={!allReady || downloading}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
           >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
-              {i + 1}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-medium text-foreground">{s.scene}</div>
-              <div className="mt-0.5 text-[11px] text-muted-foreground">
-                <span className="text-primary/80">Visual:</span> {s.visual}
-              </div>
-              {s.voiceover && (
+            <Download className="h-3.5 w-3.5" />
+            {downloading ? "Rendering…" : "Download .webm"}
+          </button>
+        )}
+      </div>
+
+      <details className="border-t border-border/60 px-4 py-3">
+        <summary className="cursor-pointer text-[11px] uppercase tracking-wider text-primary/80">
+          Scene breakdown
+        </summary>
+        <ol className="mt-2 space-y-2">
+          {payload.scenes.map((s, i) => (
+            <li
+              key={i}
+              className="flex gap-3 rounded-lg border border-border/60 bg-background/40 p-3"
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-foreground">{s.scene}</div>
                 <div className="mt-0.5 text-[11px] text-muted-foreground">
-                  <span className="text-primary/80">VO:</span> “{s.voiceover}”
+                  <span className="text-primary/80">Visual:</span> {s.visual}
                 </div>
-              )}
-              {s.seconds && (
-                <div className="mt-0.5 text-[10px] text-muted-foreground/80">
-                  {s.seconds}s
-                </div>
-              )}
-            </div>
-          </li>
-        ))}
-      </ol>
+                {s.voiceover && (
+                  <div className="mt-0.5 text-[11px] text-muted-foreground">
+                    <span className="text-primary/80">VO:</span> “{s.voiceover}”
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </details>
     </div>
   );
+}
+
+async function recordSlideshow(
+  scenes: StoryboardPayload["scenes"],
+  _title: string,
+): Promise<Blob> {
+  const W = 1280;
+  const H = 720;
+  const fps = 30;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas unsupported");
+
+  // Preload all scene images as HTMLImageElement.
+  const images = await Promise.all(
+    scenes.map(
+      (s) =>
+        new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("image load failed"));
+          img.src = s.imageUrl!;
+        }),
+    ),
+  );
+
+  const stream = canvas.captureStream(fps);
+  const mimeCandidates = [
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ];
+  const mime = mimeCandidates.find((m) =>
+    typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(m),
+  );
+  if (!mime) throw new Error("MediaRecorder not supported");
+  const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
+  const chunks: Blob[] = [];
+  recorder.ondataavailable = (e) => {
+    if (e.data.size) chunks.push(e.data);
+  };
+  const done = new Promise<Blob>((resolve) => {
+    recorder.onstop = () => resolve(new Blob(chunks, { type: mime }));
+  });
+  recorder.start();
+
+  // Draw frames.
+  const drawCover = (img: HTMLImageElement, scale: number, dx: number, dy: number) => {
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    const ratio = Math.max(W / iw, H / ih) * scale;
+    const dw = iw * ratio;
+    const dh = ih * ratio;
+    const x = (W - dw) / 2 + dx;
+    const y = (H - dh) / 2 + dy;
+    ctx.drawImage(img, x, y, dw, dh);
+  };
+
+  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+  const frameMs = 1000 / fps;
+
+  for (let i = 0; i < images.length; i++) {
+    const dur = (scenes[i].seconds || 5) * 1000;
+    const frames = Math.max(1, Math.round(dur / frameMs));
+    const prev = images[i - 1];
+    const fadeFrames = i > 0 ? Math.min(12, frames) : 0;
+    for (let f = 0; f < frames; f++) {
+      const t = f / Math.max(1, frames - 1);
+      const scale = 1.05 + t * 0.13;
+      const dx = -t * (W * 0.02);
+      const dy = -t * (H * 0.02);
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, W, H);
+      if (f < fadeFrames && prev) {
+        drawCover(prev, 1.18, -W * 0.02, -H * 0.02);
+        ctx.globalAlpha = f / fadeFrames;
+        drawCover(images[i], scale, dx, dy);
+        ctx.globalAlpha = 1;
+      } else {
+        drawCover(images[i], scale, dx, dy);
+      }
+      // Caption
+      const vo = scenes[i].voiceover;
+      if (vo) {
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.font = "600 28px system-ui, -apple-system, sans-serif";
+        const text = vo.length > 90 ? vo.slice(0, 87) + "…" : vo;
+        const m = ctx.measureText(text);
+        const tw = m.width + 32;
+        const tx = (W - tw) / 2;
+        const ty = H - 80;
+        ctx.fillRect(tx, ty, tw, 48);
+        ctx.fillStyle = "#fff";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, tx + 16, ty + 24);
+      }
+      await sleep(frameMs);
+    }
+  }
+  recorder.stop();
+  return done;
 }
 
 function ImageGeneratingCard({ prompt }: { prompt: string }) {

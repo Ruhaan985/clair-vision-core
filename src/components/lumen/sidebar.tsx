@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Plus, MessageSquare, Trash2, Sparkles } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Sparkles, ScrollText } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import {
   deleteThread,
@@ -134,6 +134,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <Sparkles className="h-3 w-3 text-primary" />
           History is saved on this device.
         </div>
+        <Link
+          to="/terms"
+          onClick={onNavigate}
+          className="mt-2 inline-flex items-center gap-1.5 text-muted-foreground transition hover:text-primary"
+        >
+          <ScrollText className="h-3 w-3" />
+          Terms & Conditions
+        </Link>
       </div>
     </aside>
   );

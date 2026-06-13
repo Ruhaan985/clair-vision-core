@@ -26,6 +26,8 @@ export type StoryboardPayload = {
     visual: string;
     voiceover?: string;
     seconds?: number;
+    imageUrl?: string;
+    imagePrompt?: string;
   }>;
 };
 
