@@ -113,6 +113,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('lumen.theme.v1')||'dark';var e=document.documentElement;e.classList.toggle('light',t==='light');e.classList.toggle('dark',t==='dark');e.dataset.theme=t;}catch(e){}})();`,
+          }}
+        />
       </head>
       <body>
         {children}
