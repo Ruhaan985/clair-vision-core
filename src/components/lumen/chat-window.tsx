@@ -37,6 +37,7 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { getThread, upsertThread, deriveTitle } from "@/lib/threads";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/lumen-logo.png";
+import { ThemeToggle } from "@/components/lumen/theme-toggle";
 import {
   buildAndDownloadPdf,
   buildAndDownloadPptx,
@@ -227,20 +228,23 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="relative flex h-full flex-1 flex-col aurora-bg">
-      <header className="flex items-center justify-between border-b border-border/60 bg-background/40 px-5 py-3 backdrop-blur">
-        <div className="flex items-center gap-2">
+    <div className="relative flex h-full flex-1 flex-col aurora-bg animate-chat-open">
+      <header className="flex items-center justify-between gap-2 border-b border-border/60 bg-background/40 px-3 py-3 pl-14 backdrop-blur md:px-5 md:pl-5 animate-header-glide">
+        <div className="flex min-w-0 items-center gap-2">
           <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_10px] shadow-primary/60" />
-          <span className="text-sm font-medium tracking-tight">Lumen</span>
+          <span className="truncate text-sm font-medium tracking-tight">Lumen</span>
         </div>
-        {isBusy && (
-          <button
-            onClick={() => stop()}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition hover:text-foreground"
-          >
-            <Square className="h-3 w-3" /> Stop
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {isBusy && (
+            <button
+              onClick={() => stop()}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition hover:text-foreground"
+            >
+              <Square className="h-3 w-3" /> Stop
+            </button>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="flex-1 overflow-hidden">
@@ -281,7 +285,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
         )}
       </div>
 
-      <div className="border-t border-border/60 bg-background/40 px-4 py-4 backdrop-blur">
+      <div className="border-t border-border/60 bg-background/40 px-3 py-3 backdrop-blur md:px-4 md:py-4 animate-composer-rise">
         <form
           onSubmit={(e) => {
             e.preventDefault();
