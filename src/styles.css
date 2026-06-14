@@ -3,6 +3,7 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant light (&:is(.light *));
 
 /*
  * Design system definition.
@@ -379,3 +380,67 @@
   to   { opacity: 1; }
 }
 .scene-fade { animation: scene-in 0.6s ease-out both; }
+
+/* ---------- Light theme override ---------- */
+html.light {
+  --background: oklch(0.985 0.005 180);
+  --foreground: oklch(0.18 0.04 220);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.04 220);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.04 220);
+  --primary: oklch(0.62 0.15 170);
+  --primary-foreground: oklch(0.99 0.01 170);
+  --secondary: oklch(0.94 0.02 180);
+  --secondary-foreground: oklch(0.2 0.04 220);
+  --muted: oklch(0.95 0.012 200);
+  --muted-foreground: oklch(0.45 0.03 220);
+  --accent: oklch(0.9 0.06 170);
+  --accent-foreground: oklch(0.2 0.04 220);
+  --destructive: oklch(0.6 0.22 22);
+  --destructive-foreground: oklch(0.99 0.01 0);
+  --border: oklch(0 0 0 / 10%);
+  --input: oklch(0 0 0 / 8%);
+  --ring: oklch(0.62 0.15 170);
+  --sidebar: oklch(0.97 0.01 180);
+  --sidebar-foreground: oklch(0.2 0.04 220);
+  --sidebar-primary: oklch(0.62 0.15 170);
+  --sidebar-primary-foreground: oklch(0.99 0.01 170);
+  --sidebar-accent: oklch(0.92 0.02 180);
+  --sidebar-accent-foreground: oklch(0.2 0.04 220);
+  --sidebar-border: oklch(0 0 0 / 8%);
+  --sidebar-ring: oklch(0.62 0.15 170);
+}
+html.light .aurora-bg {
+  background:
+    radial-gradient(60% 50% at 15% 10%, oklch(0.85 0.12 170 / 0.45), transparent 60%),
+    radial-gradient(50% 40% at 90% 0%, oklch(0.85 0.10 220 / 0.35), transparent 60%),
+    radial-gradient(80% 60% at 50% 110%, oklch(0.9 0.10 150 / 0.35), transparent 60%),
+    var(--color-background);
+}
+html.light .is-assistant .prose-content pre {
+  background: oklch(0.96 0.01 200);
+  border-color: oklch(0 0 0 / 0.08);
+}
+
+/* ---------- Chat open entrance ---------- */
+@keyframes chat-rise {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(6px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.animate-chat-open { animation: chat-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes header-glide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-header-glide { animation: header-glide 0.55s ease-out 0.05s both; }
+
+@keyframes composer-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-composer-rise { animation: composer-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s both; }
+
+/* Theme toggle sun/moon swap */
+.theme-toggle-icon { transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease; }
