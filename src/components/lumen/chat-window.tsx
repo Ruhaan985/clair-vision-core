@@ -11,6 +11,8 @@ import {
   Lightbulb,
   PenLine,
   Paperclip,
+  Mic,
+  MicOff,
   FileText,
   X,
   Send,
