@@ -442,6 +442,25 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             >
               <Paperclip className="h-4 w-4" />
             </button>
+            {voiceSupported && (
+              <button
+                type="button"
+                onClick={toggleVoice}
+                aria-label={isRecording ? "Stop recording" : "Start voice input"}
+                title={isRecording ? "Stop recording" : "Speak your message"}
+                className={cn(
+                  "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition",
+                  isRecording
+                    ? "bg-destructive/15 text-destructive"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {isRecording && (
+                  <span className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-destructive/60 animate-ping" />
+                )}
+              </button>
+            )}
             <textarea
               ref={textareaRef}
               value={input}
