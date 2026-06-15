@@ -11,6 +11,8 @@ import {
   Lightbulb,
   PenLine,
   Paperclip,
+  Mic,
+  MicOff,
   FileText,
   X,
   Send,
@@ -128,6 +130,63 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   const titledRef = useRef(!!autoTitle);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const baseTranscriptRef = useRef<string>("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { setVoiceSupported(false); return; }
+  }, []);
+
+  const toggleVoice = () => {
+    if (typeof window === "undefined") return;
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      toast.error("Voice input isn't supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+    if (isRecording) {
+      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = navigator.language || "en-US";
+    baseTranscriptRef.current = input ? input.replace(/\s*$/, "") + " " : "";
+    rec.onresult = (e: any) => {
+      let interim = "";
+      let finalText = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) finalText += r[0].transcript;
+        else interim += r[0].transcript;
+      }
+      if (finalText) {
+        baseTranscriptRef.current = (baseTranscriptRef.current + finalText).replace(/\s+/g, " ");
+        if (!baseTranscriptRef.current.endsWith(" ")) baseTranscriptRef.current += " ";
+      }
+      setInput((baseTranscriptRef.current + interim).trimStart());
+    };
+    rec.onerror = (e: any) => {
+      if (e?.error && e.error !== "aborted" && e.error !== "no-speech") {
+        toast.error(`Mic error: ${e.error}`);
+      }
+    };
+    rec.onend = () => { setIsRecording(false); recognitionRef.current = null; };
+    try {
+      rec.start();
+      recognitionRef.current = rec;
+      setIsRecording(true);
+    } catch (err) {
+      toast.error("Could not start microphone. Check permissions.");
+    }
+  };
+
+  useEffect(() => () => { try { recognitionRef.current?.stop(); } catch { /* */ } }, []);
 
   const isBusy = status === "submitted" || status === "streaming";
 
@@ -383,6 +442,25 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             >
               <Paperclip className="h-4 w-4" />
             </button>
+            {voiceSupported && (
+              <button
+                type="button"
+                onClick={toggleVoice}
+                aria-label={isRecording ? "Stop recording" : "Start voice input"}
+                title={isRecording ? "Stop recording" : "Speak your message"}
+                className={cn(
+                  "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition",
+                  isRecording
+                    ? "bg-destructive/15 text-destructive"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {isRecording && (
+                  <span className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-destructive/60 animate-ping" />
+                )}
+              </button>
+            )}
             <textarea
               ref={textareaRef}
               value={input}
