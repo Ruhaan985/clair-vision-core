@@ -43,6 +43,23 @@ import { getThread, upsertThread, deriveTitle } from "@/lib/threads";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/lumen-logo.png";
 import { ThemeToggle } from "@/components/lumen/theme-toggle";
+
+async function downloadImage(url: string, prompt?: string) {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const blob = await res.blob();
+    const obj = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = obj;
+    a.download = `${(prompt || "lumen-image").replace(/[^a-z0-9-_]+/gi, "_").slice(0, 60)}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(obj), 1000);
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
 import {
   buildAndDownloadPdf,
   buildAndDownloadPptx,

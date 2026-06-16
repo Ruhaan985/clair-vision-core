@@ -344,6 +344,7 @@ async function handleStoryboard(prompt: string, writer: StreamWriter) {
         role: "system",
         content:
           "You are a director writing tight video storyboards. Reply ONLY with valid JSON matching this exact schema: {\"title\": string, \"logline\": string, \"durationSeconds\": number, \"scenes\": [{\"scene\": string, \"visual\": string, \"voiceover\": string, \"seconds\": number, \"imagePrompt\": string}]}. Include 5-7 scenes that flow with a clear emotional arc. Each scene's imagePrompt must be a vivid, single-sentence, cinematic still-frame description (camera, subject, lighting, mood, palette) suitable for an AI image generator. Total durationSeconds between 20 and 60. JSON only.",
+          "You are a director writing tight video storyboards. Reply ONLY with valid JSON matching this exact schema: {\"title\": string, \"logline\": string, \"durationSeconds\": number, \"scenes\": [{\"scene\": string, \"visual\": string, \"voiceover\": string, \"seconds\": number, \"imagePrompt\": string}]}. Include EXACTLY 3 scenes with a clear arc. Each scene's imagePrompt must be a vivid, single-sentence, cinematic still-frame description (camera, subject, lighting, mood, palette) suitable for an AI image generator. Each scene 3-4 seconds. JSON only.",
       },
       { role: "user", content: `Storyboard a video about: ${topic}` },
     ],
