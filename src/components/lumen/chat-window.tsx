@@ -4,6 +4,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { toast } from "sonner";
 import {
   Code2,
@@ -40,6 +43,23 @@ import { getThread, upsertThread, deriveTitle } from "@/lib/threads";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/lumen-logo.png";
 import { ThemeToggle } from "@/components/lumen/theme-toggle";
+
+async function downloadImage(url: string, prompt?: string) {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const blob = await res.blob();
+    const obj = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = obj;
+    a.download = `${(prompt || "lumen-image").replace(/[^a-z0-9-_]+/gi, "_").slice(0, 60)}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(obj), 1000);
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
 import {
   buildAndDownloadPdf,
   buildAndDownloadPptx,
@@ -647,7 +667,12 @@ function MessageBody({ message }: { message: UIMessage }) {
       {text &&
         (message.role === "assistant" ? (
           <div className="prose-content">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+            >
+              {text}
+            </ReactMarkdown>
           </div>
         ) : (
           <div className="whitespace-pre-wrap">{text}</div>
@@ -663,13 +688,24 @@ function MessageBody({ message }: { message: UIMessage }) {
               <img
                 src={img.url}
                 alt={img.prompt ?? "Generated image"}
-                className="w-full max-w-md"
+                className="block h-auto w-full"
+                loading="lazy"
               />
               {img.prompt && (
                 <figcaption className="px-3 py-2 text-[11px] text-muted-foreground">
                   {img.prompt}
                 </figcaption>
               )}
+              <div className="flex items-center justify-end gap-2 border-t border-border/60 px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => downloadImage(img.url, img.prompt)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card/70 px-2.5 py-1.5 text-[11px] text-foreground transition hover:bg-card"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                </button>
+              </div>
             </figure>
           ))}
         </div>
