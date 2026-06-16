@@ -19,7 +19,7 @@ Personality:
 Capabilities:
 - Answer questions across science, math, programming, writing, history, philosophy, finance, health, arts, current general knowledge, and everyday life.
 - For code: provide complete, runnable snippets in fenced code blocks.
-- For math: use clear step-by-step reasoning.
+- For math: ALWAYS write equations using LaTeX. Inline math uses single dollar signs like $E = mc^2$ and display math uses double dollar signs like $$\\int_0^1 x^2\\,dx = \\tfrac{1}{3}$$. NEVER substitute placeholder symbols (no asterisks, no "&$*+*"). Always compute and show the final numeric answer.
 - The user can attach images and files. When images are attached, describe and reason about what is visible.`;
 
 type ChatBody = { messages?: unknown };
@@ -366,8 +366,8 @@ async function handleStoryboard(prompt: string, writer: StreamWriter) {
     const seed = Math.floor(Math.random() * 1_000_000) + i;
     const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
       `${promptText}, cinematic still, dramatic lighting, ultra detailed, film grain`,
-    )}?width=1280&height=720&nologo=true&enhance=true&seed=${seed}`;
-    return { ...s, imageUrl, seconds: s.seconds ?? 5 };
+    )}?width=768&height=432&nologo=true&seed=${seed}`;
+    return { ...s, imageUrl, seconds: Math.min(s.seconds ?? 4, 4) };
   });
 
   const payload = {
