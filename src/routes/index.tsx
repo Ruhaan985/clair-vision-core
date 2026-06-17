@@ -10,8 +10,10 @@ export const Route = createFileRoute("/")({
 function Index() {
   const navigate = useNavigate();
   const [phase, setPhase] = useState<0 | 1 | 2 | 3>(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const seen = typeof window !== "undefined" && sessionStorage.getItem("lumen.splash.v1");
     const existing = loadThreads();
     const target =
@@ -43,7 +45,7 @@ function Index() {
       <div className="splash-grid" />
 
       <div className="relative z-10 flex flex-col items-center text-center">
-        <div className={`splash-logo ${phase >= 1 ? "is-in" : ""}`}>
+        <div className={`splash-logo ${mounted && phase >= 1 ? "is-in" : ""}`}>
           <span className="splash-ring" />
           <span className="splash-ring splash-ring-2" />
           <img src={logo} alt="Lumen" className="relative h-20 w-20" />
@@ -51,20 +53,20 @@ function Index() {
 
         <h1
           className={`mt-6 text-5xl font-semibold tracking-tight splash-title ${
-            phase >= 2 ? "is-in" : ""
+            mounted && phase >= 2 ? "is-in" : ""
           }`}
         >
           <span>L</span><span>u</span><span>m</span><span>e</span><span>n</span>
         </h1>
         <p
           className={`mt-3 text-sm text-muted-foreground splash-tagline ${
-            phase >= 3 ? "is-in" : ""
+            mounted && phase >= 3 ? "is-in" : ""
           }`}
         >
           by MD RUHAAN — illuminating ideas.
         </p>
 
-        <div className={`mt-8 splash-bar ${phase >= 2 ? "is-in" : ""}`}>
+        <div className={`mt-8 splash-bar ${mounted && phase >= 2 ? "is-in" : ""}`}>
           <span />
         </div>
       </div>
