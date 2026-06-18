@@ -74,6 +74,26 @@ function renderText(message: UIMessage): string {
     .join("");
 }
 
+// Normalize various LaTeX delimiter styles so remark-math (which only knows $/$$)
+// can render them. Models often emit \( … \), \[ … \], or bare [ … ] blocks.
+function normalizeMath(input: string): string {
+  if (!input) return input;
+  let out = input;
+  // Protect fenced code & inline code from substitution.
+  const stash: string[] = [];
+  out = out.replace(/```[\s\S]*?```|`[^`\n]*`/g, (m) => {
+    stash.push(m);
+    return `\u0000${stash.length - 1}\u0000`;
+  });
+  // \[ ... \]  ->  $$ ... $$
+  out = out.replace(/\\\[([\s\S]+?)\\\]/g, (_m, body) => `$$${body}$$`);
+  // \( ... \)  ->  $ ... $
+  out = out.replace(/\\\(([\s\S]+?)\\\)/g, (_m, body) => `$${body}$`);
+  // Restore protected segments.
+  out = out.replace(/\u0000(\d+)\u0000/g, (_m, i) => stash[Number(i)] ?? "");
+  return out;
+}
+
 type Attachment = {
   id: string;
   file: File;
@@ -671,7 +691,7 @@ function MessageBody({ message }: { message: UIMessage }) {
               remarkPlugins={[remarkGfm, remarkMath]}
               rehypePlugins={[rehypeKatex]}
             >
-              {text}
+              {normalizeMath(text)}
             </ReactMarkdown>
           </div>
         ) : (
