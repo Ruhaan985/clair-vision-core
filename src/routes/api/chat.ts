@@ -149,13 +149,25 @@ async function handleChat(messages: UIMessage[], writer: StreamWriter, request: 
     if (ctx) provider.splice(1, 0, { role: "system", content: ctx });
   }
 
-  // Stream directly from Pollinations for low latency, with model fallbacks on 429.
+  // Prefer Lovable AI Gateway for fast, reliable streaming.
+  const lovableKey = (globalThis as { process?: { env?: Record<string, string> } }).process?.env?.LOVABLE_API_KEY;
+  if (lovableKey) {
+    const lovableModels = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
+    for (const model of lovableModels) {
+      const streamed = await streamFromLovable(provider, writer, model, lovableKey).catch(() => "error" as const);
+      if (streamed === true) return;
+      if (streamed === "rate-limited") continue;
+      if (streamed === false) break;
+    }
+  }
+
+  // Fallback: stream from Pollinations, with model fallbacks on 429.
   const models = ["openai-fast", "openai", "mistral", "qwen-coder"];
   for (const model of models) {
     const streamed = await streamFromPollinations(provider, writer, model).catch(() => "error" as const);
     if (streamed === true) return;
     if (streamed === "rate-limited") continue;
-    if (streamed === false) break; // produced no tokens but didn't fail; stop trying
+    if (streamed === false) break;
   }
 
   // Final fallback: non-streaming call + instant write.
@@ -165,6 +177,54 @@ async function handleChat(messages: UIMessage[], writer: StreamWriter, request: 
   } catch {
     writeText(writer, "I'm getting a lot of requests right now. Please try again in a few seconds.");
   }
+}
+
+async function streamFromLovable(
+  messages: ProviderMessage[],
+  writer: StreamWriter,
+  model: string,
+  apiKey: string,
+): Promise<boolean | "rate-limited"> {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ model, messages, stream: true, temperature: 0.7 }),
+  });
+  if (res.status === 429 || res.status === 402) return "rate-limited";
+  if (!res.ok || !res.body) return false;
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let started = false;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let nl;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      const data = line.slice(5).trim();
+      if (!data || data === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(data) as {
+          choices?: Array<{ delta?: { content?: string } }>;
+        };
+        const delta = parsed.choices?.[0]?.delta?.content;
+        if (delta) {
+          if (!started) { writer.write({ type: "text-start", id: TEXT_ID }); started = true; }
+          writer.write({ type: "text-delta", id: TEXT_ID, delta });
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  if (started) writer.write({ type: "text-end", id: TEXT_ID });
+  return started;
 }
 
 async function streamFromPollinations(
