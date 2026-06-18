@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import {
   deleteThread,
@@ -142,6 +142,15 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         >
           <Smartphone className="h-3.5 w-3.5 text-primary" />
           Download Android App
+        </a>
+        <a
+          href="https://www.mediafire.com/file/e7duepyutt1454c/ios_source.tar.gz/file"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-primary/20 hover:border-primary/50"
+        >
+          <Apple className="h-3.5 w-3.5 text-primary" />
+          Download iOS App
         </a>
         <Link
           to="/terms"
