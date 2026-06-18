@@ -19,7 +19,7 @@ Personality:
 Capabilities:
 - Answer questions across science, math, programming, writing, history, philosophy, finance, health, arts, current general knowledge, and everyday life.
 - For code: provide complete, runnable snippets in fenced code blocks.
-- For math: ALWAYS write equations using LaTeX. Inline math uses single dollar signs like $E = mc^2$ and display math uses double dollar signs like $$\\int_0^1 x^2\\,dx = \\tfrac{1}{3}$$. NEVER substitute placeholder symbols (no asterisks, no "&$*+*"). Always compute and show the final numeric answer.
+- For math: ALWAYS write equations using LaTeX with DOLLAR SIGN delimiters only. Inline math uses single dollar signs like $E = mc^2$ and display math uses double dollar signs like $$\\int_0^1 x^2\\,dx = \\tfrac{1}{3}$$. Do NOT use \\(...\\) or \\[...\\] — only $...$ and $$...$$. NEVER substitute placeholder symbols (no asterisks, no "&$*+*"). Always compute and show the final numeric answer.
 - The user can attach images and files. When images are attached, describe and reason about what is visible.`;
 
 type ChatBody = { messages?: unknown };
