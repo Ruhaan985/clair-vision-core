@@ -31,6 +31,8 @@ import {
   Film,
   Play,
   Pause,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -43,6 +45,7 @@ import { getThread, upsertThread, deriveTitle } from "@/lib/threads";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/lumen-logo.png";
 import { ThemeToggle } from "@/components/lumen/theme-toggle";
+import { useAmbientMusic } from "@/hooks/use-ambient-music";
 
 async function downloadImage(url: string, prompt?: string) {
   try {
