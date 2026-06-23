@@ -81,8 +81,20 @@ function Index() {
         <video
           src={introVideo.url}
           autoPlay
-          muted
           playsInline
+          ref={(el) => {
+            if (!el) return;
+            el.muted = false;
+            el.volume = 1;
+            const p = el.play();
+            if (p && typeof p.catch === "function") {
+              p.catch(() => {
+                // Browser blocked unmuted autoplay — fall back to muted so the video still plays.
+                el.muted = true;
+                el.play().catch(() => {});
+              });
+            }
+          }}
           className="absolute inset-0 h-full w-full object-contain bg-black animate-fade-in"
         />
       )}

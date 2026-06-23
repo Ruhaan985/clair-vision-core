@@ -31,6 +31,8 @@ import {
   Film,
   Play,
   Pause,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -43,6 +45,7 @@ import { getThread, upsertThread, deriveTitle } from "@/lib/threads";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/lumen-logo.png";
 import { ThemeToggle } from "@/components/lumen/theme-toggle";
+import { useAmbientMusic } from "@/hooks/use-ambient-music";
 
 async function downloadImage(url: string, prompt?: string) {
   try {
@@ -230,6 +233,16 @@ export function ChatWindow({ threadId }: { threadId: string }) {
 
   const isBusy = status === "submitted" || status === "streaming";
 
+  // Ambient background music — user-controlled, auto-starts on first AI activity.
+  const music = useAmbientMusic(false);
+  const musicAutoStartedRef = useRef(false);
+  useEffect(() => {
+    if (isBusy && !musicAutoStartedRef.current && !music.playing) {
+      musicAutoStartedRef.current = true;
+      void music.start();
+    }
+  }, [isBusy, music]);
+
   // Persist on every update
   useEffect(() => {
     if (messages.length === 0) return;
@@ -342,6 +355,14 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               <Square className="h-3 w-3" /> Stop
             </button>
           )}
+          <button
+            onClick={music.toggle}
+            aria-label={music.playing ? "Mute background music" : "Play background music"}
+            title={music.playing ? "Mute music" : "Play music"}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition hover:text-foreground"
+          >
+            {music.playing ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </button>
           <ThemeToggle />
         </div>
       </header>
