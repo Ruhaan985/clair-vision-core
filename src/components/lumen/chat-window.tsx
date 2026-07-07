@@ -344,6 +344,13 @@ export function ChatWindow({ threadId }: { threadId: string }) {
 
   return (
     <div className="relative flex h-full flex-1 flex-col aurora-bg animate-chat-open">
+      {showCalc && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-14 z-30 flex items-end justify-end p-3 md:p-5">
+          <div className="pointer-events-auto animate-msg-in-right">
+            <Calculator onClose={() => setShowCalc(false)} />
+          </div>
+        </div>
+      )}
       <header className="flex items-center justify-between gap-2 border-b border-border/60 bg-background/40 px-3 py-3 pl-14 backdrop-blur md:px-5 md:pl-5 animate-header-glide">
         {/* calc-anchor */}
         <div className="flex min-w-0 items-center gap-2">
