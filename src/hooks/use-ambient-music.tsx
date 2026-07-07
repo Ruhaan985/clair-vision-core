@@ -47,25 +47,46 @@ export function useAmbientMusic(defaultOn = false) {
     // Soft lowpass to keep it mellow
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = 1100;
-    filter.Q.value = 0.6;
-    filter.connect(master);
+    filter.frequency.value = 1600;
+    filter.Q.value = 0.4;
 
-    // Chord: A minor 9 — A2, E3, C4, G4 — quiet sine pad
-    const freqs = [110, 164.81, 261.63, 392.0];
+    // Gentle reverb-ish tail via convolver with generated impulse response
+    const convolver = ctx.createConvolver();
+    const irLen = Math.floor(ctx.sampleRate * 3.2);
+    const ir = ctx.createBuffer(2, irLen, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = ir.getChannelData(ch);
+      for (let i = 0; i < irLen; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irLen, 2.4);
+      }
+    }
+    convolver.buffer = ir;
+
+    const wet = ctx.createGain();
+    wet.gain.value = 0.55;
+    const dry = ctx.createGain();
+    dry.gain.value = 0.7;
+
+    filter.connect(dry).connect(master);
+    filter.connect(convolver).connect(wet).connect(master);
+
+    // Wider ambient voicing: A minor 9 spread across octaves for a lush pad
+    const freqs = [55, 110, 164.81, 261.63, 329.63, 392.0, 493.88];
     freqs.forEach((f, i) => {
       const osc = ctx.createOscillator();
-      osc.type = i < 2 ? "sine" : "triangle";
+      osc.type = i < 2 ? "sine" : i < 5 ? "triangle" : "sine";
       osc.frequency.value = f;
+      // Subtle detune per voice for chorus-like shimmer
+      osc.detune.value = (i - 3) * 6;
 
       const gain = ctx.createGain();
-      gain.gain.value = 0.08;
+      gain.gain.value = 0.11;
 
       // Slow LFO for movement
       const lfo = ctx.createOscillator();
-      lfo.frequency.value = 0.05 + i * 0.03;
+      lfo.frequency.value = 0.04 + i * 0.022;
       const lfoGain = ctx.createGain();
-      lfoGain.gain.value = 0.04;
+      lfoGain.gain.value = 0.05;
       lfo.connect(lfoGain).connect(gain.gain);
 
       osc.connect(gain).connect(filter);
@@ -74,8 +95,12 @@ export function useAmbientMusic(defaultOn = false) {
       nodesRef.current.push({ osc, gain, lfo, lfoGain });
     });
 
-    // Fade in
-    master.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 1.5);
+    // Slow filter sweep for evolving ambient character
+    filter.frequency.setValueAtTime(900, ctx.currentTime);
+    filter.frequency.linearRampToValueAtTime(1800, ctx.currentTime + 14);
+
+    // Fade in — louder overall
+    master.gain.linearRampToValueAtTime(0.55, ctx.currentTime + 2.5);
     setPlaying(true);
   }, []);
 

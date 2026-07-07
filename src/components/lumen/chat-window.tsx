@@ -33,6 +33,7 @@ import {
   Pause,
   Volume2,
   VolumeX,
+  Calculator as CalculatorIcon,
 } from "lucide-react";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -46,6 +47,7 @@ import { cn } from "@/lib/utils";
 import logo from "@/assets/lumen-logo.png";
 import { ThemeToggle } from "@/components/lumen/theme-toggle";
 import { useAmbientMusic } from "@/hooks/use-ambient-music";
+import { Calculator } from "@/components/lumen/calculator";
 
 async function downloadImage(url: string, prompt?: string) {
   try {
@@ -177,6 +179,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   const baseTranscriptRef = useRef<string>("");
   const [isRecording, setIsRecording] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
+  const [showCalc, setShowCalc] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -341,7 +344,15 @@ export function ChatWindow({ threadId }: { threadId: string }) {
 
   return (
     <div className="relative flex h-full flex-1 flex-col aurora-bg animate-chat-open">
+      {showCalc && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-14 z-30 flex items-end justify-end p-3 md:p-5">
+          <div className="pointer-events-auto animate-msg-in-right">
+            <Calculator onClose={() => setShowCalc(false)} />
+          </div>
+        </div>
+      )}
       <header className="flex items-center justify-between gap-2 border-b border-border/60 bg-background/40 px-3 py-3 pl-14 backdrop-blur md:px-5 md:pl-5 animate-header-glide">
+        {/* calc-anchor */}
         <div className="flex min-w-0 items-center gap-2">
           <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_10px] shadow-primary/60" />
           <span className="truncate text-sm font-medium tracking-tight">Lumen</span>
@@ -362,6 +373,19 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition hover:text-foreground"
           >
             {music.playing ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </button>
+          <button
+            onClick={() => setShowCalc((v) => !v)}
+            aria-label={showCalc ? "Close calculator" : "Open calculator"}
+            title="Calculator"
+            className={cn(
+              "inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background transition hover:text-foreground",
+              showCalc
+                ? "border-primary/60 text-primary"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            <CalculatorIcon className="h-4 w-4" />
           </button>
           <ThemeToggle />
         </div>
