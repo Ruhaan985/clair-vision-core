@@ -179,6 +179,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   const baseTranscriptRef = useRef<string>("");
   const [isRecording, setIsRecording] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
+  const [showCalc, setShowCalc] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
