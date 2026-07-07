@@ -33,6 +33,7 @@ import {
   Pause,
   Volume2,
   VolumeX,
+  Calculator as CalculatorIcon,
 } from "lucide-react";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -46,6 +47,7 @@ import { cn } from "@/lib/utils";
 import logo from "@/assets/lumen-logo.png";
 import { ThemeToggle } from "@/components/lumen/theme-toggle";
 import { useAmbientMusic } from "@/hooks/use-ambient-music";
+import { Calculator } from "@/components/lumen/calculator";
 
 async function downloadImage(url: string, prompt?: string) {
   try {
