@@ -366,6 +366,19 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           >
             {music.playing ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
+          <button
+            onClick={() => setShowCalc((v) => !v)}
+            aria-label={showCalc ? "Close calculator" : "Open calculator"}
+            title="Calculator"
+            className={cn(
+              "inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background transition hover:text-foreground",
+              showCalc
+                ? "border-primary/60 text-primary"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            <CalculatorIcon className="h-4 w-4" />
+          </button>
           <ThemeToggle />
         </div>
       </header>
