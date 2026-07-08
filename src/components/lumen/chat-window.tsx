@@ -619,7 +619,11 @@ export function ChatWindow({ threadId }: { threadId: string }) {
                 }
               }}
               rows={1}
-              placeholder="Ask Lumen anything, attach an image, or say ‘draw…’"
+              placeholder={
+                codeMode
+                  ? "Ask a coding question — snippets, debugging, algorithms…"
+                  : "Ask Lumen anything, attach an image, or say ‘draw…’"
+              }
               className="flex-1 resize-none bg-transparent py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
               disabled={isBusy && status !== "streaming"}
             />
