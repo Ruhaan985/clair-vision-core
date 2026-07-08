@@ -34,6 +34,8 @@ import {
   Volume2,
   VolumeX,
   Calculator as CalculatorIcon,
+  CloudSun,
+  Terminal,
 } from "lucide-react";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -48,6 +50,7 @@ import logo from "@/assets/lumen-logo.png";
 import { ThemeToggle } from "@/components/lumen/theme-toggle";
 import { useAmbientMusic } from "@/hooks/use-ambient-music";
 import { Calculator } from "@/components/lumen/calculator";
+import { WeatherPanel } from "@/components/lumen/weather-panel";
 
 async function downloadImage(url: string, prompt?: string) {
   try {
@@ -180,6 +183,8 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   const [isRecording, setIsRecording] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [showCalc, setShowCalc] = useState(false);
+  const [showWeather, setShowWeather] = useState(false);
+  const [codeMode, setCodeMode] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -309,7 +314,10 @@ export function ChatWindow({ threadId }: { threadId: string }) {
       url: a.url,
       filename: a.file.name,
     }));
-    sendMessage({ text: trimmed || "(see attached)", files });
+    const finalText = codeMode
+      ? `[[CODE_ONLY]] ${trimmed || "(see attached)"}`
+      : trimmed || "(see attached)";
+    sendMessage({ text: finalText, files });
     setInput("");
     setAttachments([]);
     setMode("chat");
@@ -343,11 +351,23 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="relative flex h-full flex-1 flex-col aurora-bg animate-chat-open">
+    <div
+      className={cn(
+        "relative flex h-full flex-1 flex-col aurora-bg animate-chat-open",
+        codeMode && "code-terminal",
+      )}
+    >
       {showCalc && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 top-14 z-30 flex items-end justify-end p-3 md:p-5">
           <div className="pointer-events-auto animate-msg-in-right">
             <Calculator onClose={() => setShowCalc(false)} />
+          </div>
+        </div>
+      )}
+      {showWeather && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-14 z-30 flex items-end justify-end p-3 md:p-5">
+          <div className="pointer-events-auto animate-msg-in-right">
+            <WeatherPanel onClose={() => setShowWeather(false)} />
           </div>
         </div>
       )}
@@ -356,6 +376,11 @@ export function ChatWindow({ threadId }: { threadId: string }) {
         <div className="flex min-w-0 items-center gap-2">
           <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_10px] shadow-primary/60" />
           <span className="truncate text-sm font-medium tracking-tight">Lumen</span>
+          {codeMode && (
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
+              <Terminal className="h-3 w-3" /> Code Mode
+            </span>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {isBusy && (
@@ -367,6 +392,36 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             </button>
           )}
           <button
+            onClick={() => {
+              setCodeMode((v) => !v);
+              setShowCalc(false);
+              setShowWeather(false);
+            }}
+            aria-label={codeMode ? "Exit code mode" : "Enter code mode"}
+            title="Coding-only tab"
+            className={cn(
+              "inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background transition hover:text-foreground",
+              codeMode
+                ? "border-emerald-500/60 text-emerald-400"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            <Terminal className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => { setShowWeather((v) => !v); setShowCalc(false); }}
+            aria-label={showWeather ? "Close weather" : "Open weather & location"}
+            title="Weather & location"
+            className={cn(
+              "inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background transition hover:text-foreground",
+              showWeather
+                ? "border-primary/60 text-primary"
+                : "border-border text-muted-foreground",
+            )}
+          >
+            <CloudSun className="h-4 w-4" />
+          </button>
+          <button
             onClick={music.toggle}
             aria-label={music.playing ? "Mute background music" : "Play background music"}
             title={music.playing ? "Mute music" : "Play music"}
@@ -375,7 +430,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             {music.playing ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
           <button
-            onClick={() => setShowCalc((v) => !v)}
+            onClick={() => { setShowCalc((v) => !v); setShowWeather(false); }}
             aria-label={showCalc ? "Close calculator" : "Open calculator"}
             title="Calculator"
             className={cn(
