@@ -444,3 +444,50 @@ html.light .is-assistant .prose-content pre {
 
 /* Theme toggle sun/moon swap */
 .theme-toggle-icon { transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease; }
+
+/* ---------- Code-only tab theme (terminal look) ---------- */
+.code-terminal {
+  background:
+    radial-gradient(1200px 600px at 20% 0%, rgba(16, 185, 129, 0.08), transparent 60%),
+    linear-gradient(180deg, #05100b 0%, #030806 100%);
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  color: #d1fadf;
+}
+.code-terminal header {
+  background: rgba(3, 10, 6, 0.7) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+.code-terminal .prose-content,
+.code-terminal textarea,
+.code-terminal input,
+.code-terminal p,
+.code-terminal li,
+.code-terminal span {
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+.code-terminal .prose-content {
+  color: #d1fadf;
+}
+.code-terminal .prose-content code {
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+}
+.code-terminal .prose-content pre {
+  background: #020604 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.15) inset;
+}
+.code-terminal .prose-content pre code {
+  background: transparent;
+  color: #d1fadf;
+}
+.code-terminal .prose-content a { color: #34d399; }
+.code-terminal .prose-content h1,
+.code-terminal .prose-content h2,
+.code-terminal .prose-content h3 { color: #6ee7b7; }
+.code-terminal [class*="border-border"] { border-color: rgba(16, 185, 129, 0.25) !important; }
+.code-terminal [class*="bg-card"] { background: rgba(2, 12, 8, 0.7) !important; }

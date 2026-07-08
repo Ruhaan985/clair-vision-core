@@ -142,8 +142,19 @@ async function callProvider(
 async function handleChat(messages: UIMessage[], writer: StreamWriter, request: Request) {
   const provider = toProviderMessages(messages);
 
+  const latestRaw = latestUserText(messages);
+  const latest = latestRaw.toLowerCase();
+
+  // Code-only mode: client prefixes with [[CODE_ONLY]] when the Code tab is active.
+  if (latestRaw.includes("[[CODE_ONLY]]")) {
+    provider.splice(1, 0, {
+      role: "system",
+      content:
+        "CODE-ONLY MODE: You are now a strict programming assistant. Answer ONLY questions about programming, software engineering, algorithms, debugging, code review, tooling, or computer science. If the request is unrelated to coding, politely refuse in one sentence and invite a coding question. Prefer complete, runnable code in fenced code blocks with the correct language tag. Keep prose minimal and put explanations as short comments inside the code where possible.",
+    });
+  }
+
   // If user asks about weather/location, enrich with live data.
-  const latest = latestUserText(messages).toLowerCase();
   if (/\b(weather|forecast|temperature|raining|rain|sunny|humidity|wind|climate|hot|cold|snow|where am i|my location|my city)\b/.test(latest)) {
     const ctx = await fetchLocationWeather(request).catch(() => null);
     if (ctx) provider.splice(1, 0, { role: "system", content: ctx });
@@ -479,7 +490,10 @@ function toProviderMessages(messages: UIMessage[]): ProviderMessage[] {
 
         for (const part of parts) {
           if (part.type === "text" && typeof part.text === "string") {
-            contentParts.push({ type: "text", text: part.text });
+            contentParts.push({
+              type: "text",
+              text: part.text.replace(/\[\[CODE_ONLY\]\]\s*/g, ""),
+            });
           }
           if (part.type === "file") {
             const mediaType = String(part.mediaType ?? "");
