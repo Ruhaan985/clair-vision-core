@@ -490,7 +490,10 @@ function toProviderMessages(messages: UIMessage[]): ProviderMessage[] {
 
         for (const part of parts) {
           if (part.type === "text" && typeof part.text === "string") {
-            contentParts.push({ type: "text", text: part.text });
+            contentParts.push({
+              type: "text",
+              text: part.text.replace(/\[\[CODE_ONLY\]\]\s*/g, ""),
+            });
           }
           if (part.type === "file") {
             const mediaType = String(part.mediaType ?? "");
