@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CThreadIdRouteImport } from './routes/c.$threadId'
+import { Route as ApiWeatherRouteImport } from './routes/api/weather'
 import { Route as ApiTitleRouteImport } from './routes/api/title'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 
@@ -30,6 +31,11 @@ const CThreadIdRoute = CThreadIdRouteImport.update({
   path: '/c/$threadId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWeatherRoute = ApiWeatherRouteImport.update({
+  id: '/api/weather',
+  path: '/api/weather',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTitleRoute = ApiTitleRouteImport.update({
   id: '/api/title',
   path: '/api/title',
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/title': typeof ApiTitleRoute
+  '/api/weather': typeof ApiWeatherRoute
   '/c/$threadId': typeof CThreadIdRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/title': typeof ApiTitleRoute
+  '/api/weather': typeof ApiWeatherRoute
   '/c/$threadId': typeof CThreadIdRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,34 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/api/chat': typeof ApiChatRoute
   '/api/title': typeof ApiTitleRoute
+  '/api/weather': typeof ApiWeatherRoute
   '/c/$threadId': typeof CThreadIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/terms' | '/api/chat' | '/api/title' | '/c/$threadId'
+  fullPaths:
+    | '/'
+    | '/terms'
+    | '/api/chat'
+    | '/api/title'
+    | '/api/weather'
+    | '/c/$threadId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/terms' | '/api/chat' | '/api/title' | '/c/$threadId'
-  id: '__root__' | '/' | '/terms' | '/api/chat' | '/api/title' | '/c/$threadId'
+  to:
+    | '/'
+    | '/terms'
+    | '/api/chat'
+    | '/api/title'
+    | '/api/weather'
+    | '/c/$threadId'
+  id:
+    | '__root__'
+    | '/'
+    | '/terms'
+    | '/api/chat'
+    | '/api/title'
+    | '/api/weather'
+    | '/c/$threadId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +104,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiTitleRoute: typeof ApiTitleRoute
+  ApiWeatherRoute: typeof ApiWeatherRoute
   CThreadIdRoute: typeof CThreadIdRoute
 }
 
@@ -102,6 +131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CThreadIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/weather': {
+      id: '/api/weather'
+      path: '/api/weather'
+      fullPath: '/api/weather'
+      preLoaderRoute: typeof ApiWeatherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/title': {
       id: '/api/title'
       path: '/api/title'
@@ -124,6 +160,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiChatRoute: ApiChatRoute,
   ApiTitleRoute: ApiTitleRoute,
+  ApiWeatherRoute: ApiWeatherRoute,
   CThreadIdRoute: CThreadIdRoute,
 }
 export const routeTree = rootRouteImport
