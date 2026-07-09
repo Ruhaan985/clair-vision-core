@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -51,6 +51,9 @@ import { ThemeToggle } from "@/components/lumen/theme-toggle";
 import { useAmbientMusic } from "@/hooks/use-ambient-music";
 import { Calculator } from "@/components/lumen/calculator";
 import { WeatherPanel } from "@/components/lumen/weather-panel";
+import { useAuth } from "@/hooks/use-auth";
+import { useLanguage } from "@/hooks/use-language";
+import { languageLabel } from "@/lib/languages";
 
 async function downloadImage(url: string, prompt?: string) {
   try {
@@ -157,8 +160,17 @@ const MODES: Mode[] = [
 export function ChatWindow({ threadId }: { threadId: string }) {
   const navigate = useNavigate();
   const initial = useMemo(() => getThread(threadId), [threadId]);
+  const { user } = useAuth();
+  const { language } = useLanguage();
 
-  const transport = useMemo(() => new DefaultChatTransport({ api: "/api/chat" }), []);
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: { language, languageLabel: languageLabel(language) },
+      }),
+    [language],
+  );
 
   const { messages, sendMessage, status, stop, error } = useChat({
     id: threadId,
@@ -254,6 +266,8 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   // Persist on every update
   useEffect(() => {
     if (messages.length === 0) return;
+    // Guests get an ephemeral session — history saves only for signed-in users.
+    if (!user) return;
     upsertThread({
       id: threadId,
       title: autoTitle || deriveTitle(messages),
@@ -262,7 +276,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
       messages,
     });
     window.dispatchEvent(new CustomEvent("lumen:threads-changed"));
-  }, [messages, threadId, initial?.createdAt, autoTitle]);
+  }, [messages, threadId, initial?.createdAt, autoTitle, user]);
 
   // Auto-generate a catchy title once the first assistant reply lands.
   useEffect(() => {
@@ -393,6 +407,10 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           )}
           <button
             onClick={() => {
+              if (!user) {
+                toast.error("Sign in to use Code Mode.");
+                return;
+              }
               setCodeMode((v) => !v);
               setShowCalc(false);
               setShowWeather(false);
@@ -404,12 +422,20 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               codeMode
                 ? "border-emerald-500/60 text-emerald-400"
                 : "border-border text-muted-foreground",
+              !user && "opacity-60",
             )}
           >
             <Terminal className="h-4 w-4" />
           </button>
           <button
-            onClick={() => { setShowWeather((v) => !v); setShowCalc(false); }}
+            onClick={() => {
+              if (!user) {
+                toast.error("Sign in to use Weather & Location.");
+                return;
+              }
+              setShowWeather((v) => !v);
+              setShowCalc(false);
+            }}
             aria-label={showWeather ? "Close weather" : "Open weather & location"}
             title="Weather & location"
             className={cn(
@@ -417,6 +443,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               showWeather
                 ? "border-primary/60 text-primary"
                 : "border-border text-muted-foreground",
+              !user && "opacity-60",
             )}
           >
             <CloudSun className="h-4 w-4" />
