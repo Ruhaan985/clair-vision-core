@@ -22,7 +22,7 @@ Capabilities:
 - For math: ALWAYS write equations using LaTeX with DOLLAR SIGN delimiters only. Inline math uses single dollar signs like $E = mc^2$ and display math uses double dollar signs like $$\\int_0^1 x^2\\,dx = \\tfrac{1}{3}$$. Do NOT use \\(...\\) or \\[...\\] — only $...$ and $$...$$. NEVER substitute placeholder symbols (no asterisks, no "&$*+*"). Always compute and show the final numeric answer.
 - The user can attach images and files. When images are attached, describe and reason about what is visible.`;
 
-type ChatBody = { messages?: unknown };
+type ChatBody = { messages?: unknown; language?: unknown; languageLabel?: unknown };
 type StreamWriter = Parameters<Parameters<typeof createUIMessageStream>[0]["execute"]>[0]["writer"];
 type AnyPart = UIMessage["parts"][number] & Record<string, unknown>;
 
@@ -32,7 +32,11 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
-        const { messages } = (await request.json()) as ChatBody;
+        const body = (await request.json()) as ChatBody;
+        const { messages } = body;
+        const language = typeof body.language === "string" ? body.language : "en";
+        const languageLabel =
+          typeof body.languageLabel === "string" ? body.languageLabel : "English";
         if (!Array.isArray(messages)) {
           return new Response("Messages are required", { status: 400 });
         }
@@ -64,7 +68,7 @@ export const Route = createFileRoute("/api/chat")({
                   await handleStoryboard(cleaned, writer);
                   return;
                 }
-                await handleChat(uiMessages, writer, request);
+                await handleChat(uiMessages, writer, request, { language, languageLabel });
               } catch (e) {
                 writeText(
                   writer,
@@ -139,11 +143,29 @@ async function callProvider(
   return content;
 }
 
-async function handleChat(messages: UIMessage[], writer: StreamWriter, request: Request) {
+async function handleChat(
+  messages: UIMessage[],
+  writer: StreamWriter,
+  request: Request,
+  opts: { language: string; languageLabel: string } = { language: "en", languageLabel: "English" },
+) {
   const provider = toProviderMessages(messages);
 
   const latestRaw = latestUserText(messages);
   const latest = latestRaw.toLowerCase();
+
+  // Language directive — always inject unless user picked English default.
+  if (opts.language && opts.language !== "en") {
+    provider.splice(1, 0, {
+      role: "system",
+      content:
+        `LANGUAGE DIRECTIVE: The user has chosen ${opts.languageLabel} (code: ${opts.language}) as their preferred language. ` +
+        `Reply ENTIRELY in ${opts.languageLabel}, including headings, lists, and explanations. ` +
+        `Only keep code, math (LaTeX), URLs, brand names, and technical identifiers in their original form. ` +
+        `If ${opts.languageLabel} uses a non-Latin script, use that script natively — do NOT transliterate. ` +
+        `If the user writes to you in a different language, still answer in ${opts.languageLabel} unless they explicitly ask otherwise.`,
+    });
+  }
 
   // Code-only mode: client prefixes with [[CODE_ONLY]] when the Code tab is active.
   if (latestRaw.includes("[[CODE_ONLY]]")) {
