@@ -83,6 +83,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   }, {});
 
   return (
+    <>
+    {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
     <aside className="flex h-full w-72 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       <div className="flex items-center gap-2.5 px-4 pt-5 pb-3">
         <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 glow-mint">
@@ -195,6 +197,16 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </Link>
         )}
 
+        {isAdmin && (
+          <button
+            onClick={() => setAdminOpen(true)}
+            className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-primary/20"
+          >
+            <Shield className="h-3.5 w-3.5 text-primary" />
+            Admin console
+          </button>
+        )}
+
         {/* Language selector */}
         <Popover open={langOpen} onOpenChange={setLangOpen}>
           <PopoverTrigger asChild>
@@ -293,5 +305,6 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
       </div>
     </aside>
+    </>
   );
 }
