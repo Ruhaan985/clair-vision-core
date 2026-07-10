@@ -55,19 +55,8 @@ function AuthPage() {
           toast.error(parsed.error.issues[0].message);
           return;
         }
-        // Check display-name availability first (public RPC).
-        const { data: available, error: rpcErr } = await supabase.rpc(
-          "display_name_available",
-          { _name: parsed.data.display_name },
-        );
-        if (rpcErr) {
-          toast.error(rpcErr.message);
-          return;
-        }
-        if (!available) {
-          toast.error("That display name is taken. Pick a different one.");
-          return;
-        }
+        // Uniqueness is enforced by the profiles unique index; the signup
+        // trigger surfaces a duplicate error we catch below.
         const redirectTo = `${window.location.origin}/`;
         const { data, error } = await supabase.auth.signUp({
           email: parsed.data.email,
