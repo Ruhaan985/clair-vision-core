@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, User as UserIcon, Languages, Check } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, User as UserIcon, Languages, Check, Shield } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
@@ -13,6 +13,8 @@ import logo from "@/assets/lumen-logo.png";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { LANGUAGES, findLanguage, type Language } from "@/lib/languages";
+import { useAdmin, usePresenceHeartbeat } from "@/hooks/use-admin";
+import { AdminPanel } from "@/components/lumen/admin-panel";
 import {
   Popover,
   PopoverContent,
@@ -29,6 +31,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const currentLang = findLanguage(language);
   const [langOpen, setLangOpen] = useState(false);
   const [langQuery, setLangQuery] = useState("");
+  const { isAdmin } = useAdmin();
+  const [adminOpen, setAdminOpen] = useState(false);
+  usePresenceHeartbeat();
 
   const refresh = useCallback(() => setThreads(loadThreads()), []);
 
