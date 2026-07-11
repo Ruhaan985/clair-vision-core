@@ -878,7 +878,7 @@ function MessageBody({ message }: { message: UIMessage }) {
           icon={FileDown}
           label="PDF document"
           title={p.title}
-          subtitle={p.subtitle || `${p.sections.length} section${p.sections.length === 1 ? "" : "s"}`}
+          subtitle={p.subtitle || pdfSubtitle(p)}
           onDownload={() => buildAndDownloadPdf(p)}
         />
       ))}
