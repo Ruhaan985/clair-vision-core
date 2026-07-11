@@ -85,6 +85,19 @@ function renderText(message: UIMessage): string {
     .join("");
 }
 
+function pdfSubtitle(p: PdfPayload): string {
+  if (p.blocks && p.blocks.length) {
+    const qs = p.blocks.filter((b) => b.type === "questions").reduce(
+      (n, b) => n + (b as { items: string[] }).items.length,
+      0,
+    );
+    if (qs > 0) return `${qs} question${qs === 1 ? "" : "s"}`;
+    return `${p.blocks.length} block${p.blocks.length === 1 ? "" : "s"}`;
+  }
+  const n = p.sections?.length ?? 0;
+  return `${n} section${n === 1 ? "" : "s"}`;
+}
+
 // Normalize various LaTeX delimiter styles so remark-math (which only knows $/$$)
 // can render them. Models often emit \( … \), \[ … \], or bare [ … ] blocks.
 function normalizeMath(input: string): string {
