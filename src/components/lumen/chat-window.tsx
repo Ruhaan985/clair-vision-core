@@ -1322,18 +1322,53 @@ async function recordSlideshow(
 
 function ImageGeneratingCard({ prompt }: { prompt: string }) {
   return (
-    <div className="relative w-full max-w-md overflow-hidden rounded-xl border border-primary/40 bg-card/40 p-4">
-      <div className="pointer-events-none absolute inset-0 -translate-x-full animate-shimmer-sweep bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-      <div className="relative flex aspect-video items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 via-background to-primary/5">
-        <div className="flex flex-col items-center gap-3">
-          <div className="relative flex h-12 w-12 items-center justify-center">
-            <span className="absolute inset-0 animate-ping rounded-full bg-primary/40" />
-            <span className="absolute inset-2 rounded-full bg-primary/60 blur-sm" />
-            <Sparkles className="relative h-6 w-6 text-primary-foreground animate-pulse" />
+    <div className="relative w-full max-w-md overflow-hidden rounded-xl border border-primary/40 bg-card/40 p-4 shadow-[0_0_30px_-8px_hsl(var(--primary)/0.5)]">
+      {/* moving highlight sweep */}
+      <div className="pointer-events-none absolute inset-0 -translate-x-full animate-shimmer-sweep bg-gradient-to-r from-transparent via-primary/25 to-transparent" />
+
+      <div className="relative aspect-video overflow-hidden rounded-lg bg-[#05090c]">
+        {/* rotating aurora backdrop */}
+        <div
+          className="absolute -inset-1/3 animate-aurora-spin opacity-70 blur-2xl"
+          style={{
+            background:
+              "conic-gradient(from 0deg, hsl(var(--primary)/0.9), transparent 25%, hsl(180 90% 55% / 0.5) 50%, transparent 75%, hsl(var(--primary)/0.9))",
+          }}
+        />
+
+        {/* pixel-materialize grid that fades away */}
+        <div
+          className="pointer-events-none absolute inset-0 animate-pixel-fade mix-blend-overlay"
+          style={{
+            backgroundImage:
+              "linear-gradient(hsl(var(--primary)/0.35) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)/0.35) 1px, transparent 1px)",
+            backgroundSize: "12px 12px",
+          }}
+        />
+
+        {/* horizontal scanline */}
+        <div className="pointer-events-none absolute inset-x-0 h-8 animate-scanline bg-gradient-to-b from-transparent via-primary/70 to-transparent blur-[2px]" />
+
+        {/* centre logo + dashed ring */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative flex h-20 w-20 items-center justify-center">
+            <span className="absolute inset-0 animate-ping rounded-full bg-primary/25" />
+            <span
+              className="absolute inset-0 animate-dash-spin rounded-full border-2 border-dashed border-primary/70"
+              style={{ borderStyle: "dashed" }}
+            />
+            <span className="absolute inset-3 rounded-full bg-primary/40 blur-md" />
+            <Sparkles className="relative h-8 w-8 text-primary animate-pulse drop-shadow-[0_0_10px_hsl(var(--primary))]" />
           </div>
-          <Shimmer className="text-xs">Conjuring your image…</Shimmer>
+        </div>
+
+        {/* status pill */}
+        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between rounded-md bg-black/50 px-2.5 py-1 text-[10px] text-primary-foreground/90 backdrop-blur-sm">
+          <Shimmer className="text-[10px]">Rendering pixels…</Shimmer>
+          <span className="tabular-nums text-primary">●●●</span>
         </div>
       </div>
+
       {prompt && (
         <p className="mt-3 line-clamp-2 text-[11px] italic text-muted-foreground">
           “{prompt}”

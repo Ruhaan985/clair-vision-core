@@ -219,11 +219,41 @@
 .is-assistant .prose-content th { background: oklch(1 0 0 / 0.04); font-weight: 600; }
 
 @keyframes image-reveal {
-  0% { opacity: 0; transform: scale(0.96); filter: blur(8px) saturate(1.4); }
-  60% { filter: blur(2px) saturate(1.2); }
+  0%   { opacity: 0; transform: scale(0.94); filter: blur(24px) saturate(1.6) hue-rotate(-15deg); }
+  30%  { opacity: 1; filter: blur(14px) saturate(1.5) hue-rotate(-8deg); }
+  70%  { filter: blur(4px) saturate(1.2) hue-rotate(0deg); }
   100% { opacity: 1; transform: scale(1); filter: blur(0) saturate(1); }
 }
-.animate-image-reveal { animation: image-reveal 0.7s ease-out both; }
+.animate-image-reveal { animation: image-reveal 1.6s cubic-bezier(.2,.7,.2,1) both; }
+
+/* Scanline sweep used on the generating card */
+@keyframes scanline {
+  0%   { transform: translateY(-10%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(110%); opacity: 0; }
+}
+.animate-scanline { animation: scanline 1.8s ease-in-out infinite; }
+
+/* Aurora / conic energy backdrop while generating */
+@keyframes aurora-spin {
+  0%   { transform: rotate(0deg) scale(1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.animate-aurora-spin { animation: aurora-spin 6s linear infinite; }
+
+/* Pixel-materialize grid */
+@keyframes pixel-fade {
+  0%   { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+.animate-pixel-fade { animation: pixel-fade 1.4s ease-out forwards; }
+
+/* Rotating dashed ring */
+@keyframes dash-spin {
+  to { transform: rotate(360deg); }
+}
+.animate-dash-spin { animation: dash-spin 4s linear infinite; }
 
 @keyframes shimmer-sweep {
   0% { transform: translateX(-100%); }
