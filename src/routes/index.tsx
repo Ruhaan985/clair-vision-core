@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { loadThreads, newThreadId } from "@/lib/threads";
 import logo from "@/assets/lumen-logo.png";
-import introVideo from "@/assets/lumen-intro.mp4.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -10,7 +9,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState<0 | 1 | 2 | 3 | 4>(0);
+  const [phase, setPhase] = useState<0 | 1 | 2 | 3>(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -26,31 +25,26 @@ function Index() {
     }
     sessionStorage.setItem("lumen.splash.v1", "1");
 
-    const t1 = setTimeout(() => setPhase(1), 80);
-    const t2 = setTimeout(() => setPhase(2), 700);
-    const t3 = setTimeout(() => setPhase(3), 1500);
-    const t4 = setTimeout(() => setPhase(4), 2400); // switch to video
+    // Longer, single opening animation — no follow-up video.
+    const t1 = setTimeout(() => setPhase(1), 150);
+    const t2 = setTimeout(() => setPhase(2), 1400);
+    const t3 = setTimeout(() => setPhase(3), 2800);
     const tNav = setTimeout(
       () => navigate({ to: "/c/$threadId", params: { threadId: target }, replace: true }),
-      2400 + 5500,
+      6200,
     );
     return () => {
-      [t1, t2, t3, t4, tNav].forEach(clearTimeout);
+      [t1, t2, t3, tNav].forEach(clearTimeout);
     };
   }, [navigate]);
 
   return (
     <div className="splash relative flex h-screen w-full items-center justify-center overflow-hidden aurora-bg">
-      {phase < 4 && (
-        <>
-          <div className="splash-orb splash-orb-a" />
-          <div className="splash-orb splash-orb-b" />
-          <div className="splash-orb splash-orb-c" />
-          <div className="splash-grid" />
-        </>
-      )}
+      <div className="splash-orb splash-orb-a" />
+      <div className="splash-orb splash-orb-b" />
+      <div className="splash-orb splash-orb-c" />
+      <div className="splash-grid" />
 
-      {phase < 4 ? (
       <div className="relative z-10 flex flex-col items-center text-center animate-fade-in">
         <div className={`splash-logo ${mounted && phase >= 1 ? "is-in" : ""}`}>
           <span className="splash-ring" />
@@ -77,27 +71,6 @@ function Index() {
           <span />
         </div>
       </div>
-      ) : (
-        <video
-          src={introVideo.url}
-          autoPlay
-          playsInline
-          ref={(el) => {
-            if (!el) return;
-            el.muted = false;
-            el.volume = 1;
-            const p = el.play();
-            if (p && typeof p.catch === "function") {
-              p.catch(() => {
-                // Browser blocked unmuted autoplay — fall back to muted so the video still plays.
-                el.muted = true;
-                el.play().catch(() => {});
-              });
-            }
-          }}
-          className="absolute inset-0 h-full w-full object-contain bg-black animate-fade-in"
-        />
-      )}
     </div>
   );
 }
