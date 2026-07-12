@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { checkIsAdmin, heartbeat } from "@/lib/admin.functions";
 
 export function useAdmin() {
@@ -15,12 +16,31 @@ export function useAdmin() {
       return;
     }
     setChecked(false);
-    checkIsAdmin()
-      .then((r) => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        if (!alive) return;
+        if (data?.role === "admin") {
+          setIsAdmin(true);
+          return;
+        }
+        if (!error || error.code === "PGRST116") {
+          setIsAdmin(false);
+          return;
+        }
+        const r = await checkIsAdmin();
         if (alive) setIsAdmin(!!r.isAdmin);
-      })
-      .catch(() => alive && setIsAdmin(false))
-      .finally(() => alive && setChecked(true));
+      } catch {
+        if (alive) setIsAdmin(false);
+      } finally {
+        if (alive) setChecked(true);
+      }
+    })();
     return () => {
       alive = false;
     };

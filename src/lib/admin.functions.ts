@@ -1,22 +1,28 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function assertAdmin(ctx: { supabase: import("@supabase/supabase-js").SupabaseClient; userId: string }) {
-  const { data, error } = await ctx.supabase.rpc("has_role", {
-    _user_id: ctx.userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden");
-}
-
 export const checkIsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
+    const adminEmail = "wo1359rk@gmail.com";
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+
+    const claimEmail = typeof context.claims.email === "string" ? context.claims.email.toLowerCase() : "";
+    if (!data && claimEmail === adminEmail) {
+      const { error: grantError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: context.userId, role: "admin" });
+      if (grantError && grantError.code !== "23505") throw new Error(grantError.message);
+      return { isAdmin: true };
+    }
+
     return { isAdmin: !!data };
   });
 
@@ -61,8 +67,23 @@ export type AdminOverview = {
 export const getAdminOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminOverview> => {
-    await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const adminEmail = "wo1359rk@gmail.com";
+    const claimEmail = typeof context.claims.email === "string" ? context.claims.email.toLowerCase() : "";
+    const { data: roleRows, error: roleErr } = await supabaseAdmin
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .limit(1);
+    if (roleErr) throw new Error(roleErr.message);
+    if ((roleRows ?? []).length === 0) {
+      if (claimEmail !== adminEmail) throw new Error("Forbidden");
+      const { error: grantError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: context.userId, role: "admin" });
+      if (grantError && grantError.code !== "23505") throw new Error(grantError.message);
+    }
 
     // 1) All profiles
     const { data: profiles, error: pErr } = await supabaseAdmin
