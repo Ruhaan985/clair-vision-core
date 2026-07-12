@@ -16,13 +16,14 @@ export function useAdmin() {
       return;
     }
     setChecked(false);
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle()
-      .then(async ({ data, error }) => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
         if (!alive) return;
         if (data?.role === "admin") {
           setIsAdmin(true);
@@ -34,9 +35,12 @@ export function useAdmin() {
         }
         const r = await checkIsAdmin();
         if (alive) setIsAdmin(!!r.isAdmin);
-      })
-      .catch(() => alive && setIsAdmin(false))
-      .finally(() => alive && setChecked(true));
+      } catch {
+        if (alive) setIsAdmin(false);
+      } finally {
+        if (alive) setChecked(true);
+      }
+    })();
     return () => {
       alive = false;
     };
