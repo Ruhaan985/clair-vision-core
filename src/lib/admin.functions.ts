@@ -1,6 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export const SUSPENSION_REASONS = [
+  "Cheating",
+  "Harassment or abuse",
+  "Spam",
+  "Hate speech",
+  "Illegal activity",
+  "Impersonation",
+  "Other",
+] as const;
+export type SuspensionReason = (typeof SUSPENSION_REASONS)[number];
+
 export const checkIsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -36,6 +47,71 @@ export const heartbeat = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const getMySuspension = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase
+      .from("user_suspensions")
+      .select("reason, message, created_at")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    return { suspension: (data as { reason: string; message: string; created_at: string } | null) ?? null };
+  });
+
+async function assertAdmin(context: { userId: string; claims: Record<string, unknown> }) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", context.userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!data) {
+    const email = typeof context.claims.email === "string" ? context.claims.email.toLowerCase() : "";
+    if (email !== "wo1359rk@gmail.com") throw new Error("Forbidden");
+  }
+  return supabaseAdmin;
+}
+
+export const suspendUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; reason: string; message: string }) => data)
+  .handler(async ({ data, context }) => {
+    if (data.userId === context.userId) throw new Error("You cannot suspend yourself.");
+    const admin = await assertAdmin(context);
+    // Prevent suspending another admin
+    const { data: targetRole } = await admin
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", data.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (targetRole) throw new Error("Cannot suspend an admin.");
+    const { error } = await admin
+      .from("user_suspensions")
+      .upsert(
+        {
+          user_id: data.userId,
+          reason: data.reason,
+          message: data.message,
+          suspended_by: context.userId,
+        },
+        { onConflict: "user_id" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const unsuspendUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const admin = await assertAdmin(context);
+    const { error } = await admin.from("user_suspensions").delete().eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export type AdminOverview = {
   totals: {
     accounts: number;
@@ -61,6 +137,7 @@ export type AdminOverview = {
     last_seen_at: string | null;
     last_sign_in_at: string | null;
     is_admin: boolean;
+    suspension: { reason: string; message: string; created_at: string } | null;
   }>;
 };
 
@@ -110,6 +187,18 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       .eq("role", "admin");
     const adminIds = new Set((adminRoles ?? []).map((r) => r.user_id as string));
 
+    const { data: suspensionRows } = await supabaseAdmin
+      .from("user_suspensions")
+      .select("user_id, reason, message, created_at");
+    const suspensionMap = new Map<string, { reason: string; message: string; created_at: string }>();
+    for (const s of suspensionRows ?? []) {
+      suspensionMap.set(s.user_id as string, {
+        reason: s.reason as string,
+        message: s.message as string,
+        created_at: s.created_at as string,
+      });
+    }
+
     const now = Date.now();
     const ONLINE_MS = 2 * 60 * 1000;
     const DAY_MS = 24 * 60 * 60 * 1000;
@@ -125,6 +214,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         last_seen_at: (p.last_seen_at as string | null) ?? null,
         last_sign_in_at: meta?.last_sign_in_at ?? null,
         is_admin: adminIds.has(p.user_id as string),
+        suspension: suspensionMap.get(p.user_id as string) ?? null,
       };
     });
 

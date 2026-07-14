@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/use-auth";
 import { LanguageProvider } from "@/hooks/use-language";
+import { SuspensionGate } from "@/components/lumen/suspension-gate";
 
 function NotFoundComponent() {
   return (
@@ -136,7 +137,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <LanguageProvider>
-          <Outlet />
+          <SuspensionGate>
+            <Outlet />
+          </SuspensionGate>
           <Toaster position="top-center" />
         </LanguageProvider>
       </AuthProvider>
