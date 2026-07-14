@@ -47,6 +47,71 @@ export const heartbeat = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const getMySuspension = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase
+      .from("user_suspensions")
+      .select("reason, message, created_at")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    return { suspension: (data as { reason: string; message: string; created_at: string } | null) ?? null };
+  });
+
+async function assertAdmin(context: { userId: string; claims: Record<string, unknown> }) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", context.userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!data) {
+    const email = typeof context.claims.email === "string" ? context.claims.email.toLowerCase() : "";
+    if (email !== "wo1359rk@gmail.com") throw new Error("Forbidden");
+  }
+  return supabaseAdmin;
+}
+
+export const suspendUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; reason: string; message: string }) => data)
+  .handler(async ({ data, context }) => {
+    if (data.userId === context.userId) throw new Error("You cannot suspend yourself.");
+    const admin = await assertAdmin(context);
+    // Prevent suspending another admin
+    const { data: targetRole } = await admin
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", data.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (targetRole) throw new Error("Cannot suspend an admin.");
+    const { error } = await admin
+      .from("user_suspensions")
+      .upsert(
+        {
+          user_id: data.userId,
+          reason: data.reason,
+          message: data.message,
+          suspended_by: context.userId,
+        },
+        { onConflict: "user_id" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const unsuspendUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const admin = await assertAdmin(context);
+    const { error } = await admin.from("user_suspensions").delete().eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export type AdminOverview = {
   totals: {
     accounts: number;
