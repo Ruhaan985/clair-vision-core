@@ -122,6 +122,18 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       .eq("role", "admin");
     const adminIds = new Set((adminRoles ?? []).map((r) => r.user_id as string));
 
+    const { data: suspensionRows } = await supabaseAdmin
+      .from("user_suspensions")
+      .select("user_id, reason, message, created_at");
+    const suspensionMap = new Map<string, { reason: string; message: string; created_at: string }>();
+    for (const s of suspensionRows ?? []) {
+      suspensionMap.set(s.user_id as string, {
+        reason: s.reason as string,
+        message: s.message as string,
+        created_at: s.created_at as string,
+      });
+    }
+
     const now = Date.now();
     const ONLINE_MS = 2 * 60 * 1000;
     const DAY_MS = 24 * 60 * 60 * 1000;
@@ -137,6 +149,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         last_seen_at: (p.last_seen_at as string | null) ?? null,
         last_sign_in_at: meta?.last_sign_in_at ?? null,
         is_admin: adminIds.has(p.user_id as string),
+        suspension: suspensionMap.get(p.user_id as string) ?? null,
       };
     });
 
