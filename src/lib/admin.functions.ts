@@ -1,6 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export const SUSPENSION_REASONS = [
+  "Cheating",
+  "Harassment or abuse",
+  "Spam",
+  "Hate speech",
+  "Illegal activity",
+  "Impersonation",
+  "Other",
+] as const;
+export type SuspensionReason = (typeof SUSPENSION_REASONS)[number];
+
 export const checkIsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -61,6 +72,7 @@ export type AdminOverview = {
     last_seen_at: string | null;
     last_sign_in_at: string | null;
     is_admin: boolean;
+    suspension: { reason: string; message: string; created_at: string } | null;
   }>;
 };
 
