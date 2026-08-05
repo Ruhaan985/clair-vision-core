@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, User as UserIcon, Languages, Check, Shield } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield, Award } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
@@ -15,6 +15,8 @@ import { useLanguage } from "@/hooks/use-language";
 import { LANGUAGES, findLanguage, type Language } from "@/lib/languages";
 import { useAdmin, usePresenceHeartbeat } from "@/hooks/use-admin";
 import { AdminPanel } from "@/components/lumen/admin-panel";
+import { useRank } from "@/hooks/use-rank";
+import { RANK_DETAILS } from "@/lib/ranks";
 import {
   Popover,
   PopoverContent,
@@ -32,6 +34,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [langOpen, setLangOpen] = useState(false);
   const [langQuery, setLangQuery] = useState("");
   const { isAdmin } = useAdmin();
+  const rank = useRank();
   const [adminOpen, setAdminOpen] = useState(false);
   usePresenceHeartbeat();
 
@@ -176,7 +179,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               <div className="truncate text-xs font-medium text-foreground">
                 {profile?.display_name || user.email}
               </div>
-              <div className="truncate text-[10px] text-muted-foreground">Signed in</div>
+              <div className="flex items-center gap-1 truncate text-[10px] text-muted-foreground" title={RANK_DETAILS[rank].perk}>
+                <Award className="h-2.5 w-2.5 text-primary" />
+                {RANK_DETAILS[rank].label} · {RANK_DETAILS[rank].perk}
+              </div>
             </div>
             <button
               onClick={async () => { await signOut(); toast.success("Signed out."); }}

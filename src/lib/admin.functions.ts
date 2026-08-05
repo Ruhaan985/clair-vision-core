@@ -1,16 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-export const SUSPENSION_REASONS = [
-  "Cheating",
-  "Harassment or abuse",
-  "Spam",
-  "Hate speech",
-  "Illegal activity",
-  "Impersonation",
-  "Other",
-] as const;
-export type SuspensionReason = (typeof SUSPENSION_REASONS)[number];
+import { assertLumenAdmin } from "@/lib/admin.server";
+import type { LumenRank } from "@/lib/ranks";
 
 export const checkIsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -58,27 +49,12 @@ export const getMySuspension = createServerFn({ method: "GET" })
     return { suspension: (data as { reason: string; message: string; created_at: string } | null) ?? null };
   });
 
-async function assertAdmin(context: { userId: string; claims: Record<string, unknown> }) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
-    .from("user_roles")
-    .select("id")
-    .eq("user_id", context.userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (!data) {
-    const email = typeof context.claims.email === "string" ? context.claims.email.toLowerCase() : "";
-    if (email !== "wo1359rk@gmail.com") throw new Error("Forbidden");
-  }
-  return supabaseAdmin;
-}
-
 export const suspendUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { userId: string; reason: string; message: string }) => data)
   .handler(async ({ data, context }) => {
     if (data.userId === context.userId) throw new Error("You cannot suspend yourself.");
-    const admin = await assertAdmin(context);
+    const admin = await assertLumenAdmin(context);
     // Prevent suspending another admin
     const { data: targetRole } = await admin
       .from("user_roles")
@@ -106,7 +82,7 @@ export const unsuspendUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { userId: string }) => data)
   .handler(async ({ data, context }) => {
-    const admin = await assertAdmin(context);
+    const admin = await assertLumenAdmin(context);
     const { error } = await admin.from("user_suspensions").delete().eq("user_id", data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -138,8 +114,29 @@ export type AdminOverview = {
     last_sign_in_at: string | null;
     is_admin: boolean;
     suspension: { reason: string; message: string; created_at: string } | null;
+    rank: LumenRank;
   }>;
 };
+
+export const assignUserRank = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; rank: LumenRank }) => data)
+  .handler(async ({ data, context }) => {
+    const admin = await assertLumenAdmin(context);
+    const allowed: LumenRank[] = ["bronze", "silver", "gold", "platinum", "diamond", "onyx", "nemesis", "arch_nemesis"];
+    if (!allowed.includes(data.rank)) throw new Error("Invalid rank");
+    const { error } = await admin.from("user_ranks").upsert(
+      {
+        user_id: data.userId,
+        rank: data.rank,
+        assigned_by: context.userId,
+        assigned_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
 
 export const getAdminOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -199,6 +196,12 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       });
     }
 
+    const { data: rankRows, error: rankErr } = await supabaseAdmin
+      .from("user_ranks")
+      .select("user_id, rank");
+    if (rankErr) throw new Error(rankErr.message);
+    const rankMap = new Map((rankRows ?? []).map((r) => [r.user_id as string, r.rank as LumenRank]));
+
     const now = Date.now();
     const ONLINE_MS = 2 * 60 * 1000;
     const DAY_MS = 24 * 60 * 60 * 1000;
@@ -215,6 +218,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         last_sign_in_at: meta?.last_sign_in_at ?? null,
         is_admin: adminIds.has(p.user_id as string),
         suspension: suspensionMap.get(p.user_id as string) ?? null,
+        rank: rankMap.get(p.user_id as string) ?? "bronze",
       };
     });
 

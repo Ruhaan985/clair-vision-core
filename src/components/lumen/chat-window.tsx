@@ -54,6 +54,8 @@ import { WeatherPanel } from "@/components/lumen/weather-panel";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { languageLabel } from "@/lib/languages";
+import { useRank } from "@/hooks/use-rank";
+import { RANK_DETAILS } from "@/lib/ranks";
 
 async function downloadImage(url: string, prompt?: string) {
   try {
@@ -134,8 +136,6 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 MB per file
-
 const SUGGESTIONS = [
   {
     icon: Lightbulb,
@@ -174,6 +174,8 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   const navigate = useNavigate();
   const initial = useMemo(() => getThread(threadId), [threadId]);
   const { user } = useAuth();
+  const rank = useRank();
+  const maxFileBytes = RANK_DETAILS[rank].uploadMb * 1024 * 1024;
   const { language } = useLanguage();
 
   const transport = useMemo(
@@ -356,8 +358,8 @@ export function ChatWindow({ threadId }: { threadId: string }) {
     const incoming = Array.from(list);
     const next: Attachment[] = [];
     for (const file of incoming) {
-      if (file.size > MAX_FILE_BYTES) {
-        toast.error(`${file.name} is too large (max 8 MB).`);
+      if (file.size > maxFileBytes) {
+        toast.error(`${file.name} is too large (your ${RANK_DETAILS[rank].label} limit is ${RANK_DETAILS[rank].uploadMb} MB).`);
         continue;
       }
       try {

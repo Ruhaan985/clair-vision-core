@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { X, Users, Activity, Loader2, Shield, Globe2, RefreshCw, Ban, Undo2 } from "lucide-react";
+import { X, Users, Activity, Loader2, Shield, Globe2, RefreshCw, Ban, Undo2, Award } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAdminOverview,
   suspendUser,
   unsuspendUser,
-  SUSPENSION_REASONS,
+  assignUserRank,
   type AdminOverview,
 } from "@/lib/admin.functions";
+import { SUSPENSION_REASONS } from "@/lib/admin.constants";
+import { LUMEN_RANKS, RANK_DETAILS, type LumenRank } from "@/lib/ranks";
 import { findLanguage } from "@/lib/languages";
 import { cn } from "@/lib/utils";
 
@@ -103,6 +105,15 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
                 try {
                   await unsuspendUser({ data: { userId: a.user_id } });
                   toast.success(`Unsuspended ${a.display_name || a.email}`);
+                  load();
+                } catch (e) {
+                  toast.error((e as Error).message);
+                }
+              }}
+              onRank={async (a, rank) => {
+                try {
+                  await assignUserRank({ data: { userId: a.user_id, rank } });
+                  toast.success(`${a.display_name || a.email} is now ${RANK_DETAILS[rank].label}`);
                   load();
                 } catch (e) {
                   toast.error((e as Error).message);
@@ -308,10 +319,12 @@ function AccountsList({
   data,
   onSuspend,
   onUnsuspend,
+  onRank,
 }: {
   data: AdminOverview;
   onSuspend: (a: AdminOverview["accounts"][number]) => void;
   onUnsuspend: (a: AdminOverview["accounts"][number]) => void;
+  onRank: (a: AdminOverview["accounts"][number], rank: LumenRank) => void;
 }) {
   const [q, setQ] = useState("");
   const rows = data.accounts.filter((a) => {
@@ -337,6 +350,7 @@ function AccountsList({
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Email</th>
               <th className="px-3 py-2">Lang</th>
+              <th className="px-3 py-2">Rank</th>
               <th className="px-3 py-2">Joined</th>
               <th className="px-3 py-2">Last seen</th>
               <th className="px-3 py-2">Actions</th>
@@ -365,6 +379,22 @@ function AccountsList({
                 </td>
                 <td className="px-3 py-2 text-muted-foreground">{a.email ?? "—"}</td>
                 <td className="px-3 py-2 text-muted-foreground">{a.preferred_language}</td>
+                <td className="px-3 py-2">
+                  <label className="sr-only" htmlFor={`rank-${a.user_id}`}>Rank for {a.display_name}</label>
+                  <div className="flex items-center gap-1">
+                    <Award className="h-3 w-3 text-primary" />
+                    <select
+                      id={`rank-${a.user_id}`}
+                      value={a.rank}
+                      onChange={(event) => onRank(a, event.target.value as LumenRank)}
+                      className="max-w-28 rounded-md border border-border bg-background px-1.5 py-1 text-[10px] outline-none focus:border-primary"
+                    >
+                      {LUMEN_RANKS.map((rank) => (
+                        <option key={rank} value={rank}>{RANK_DETAILS[rank].label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </td>
                 <td className="px-3 py-2 text-muted-foreground">
                   {new Date(a.created_at).toLocaleDateString()}
                 </td>
@@ -392,7 +422,7 @@ function AccountsList({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+                 <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
                   No matches.
                 </td>
               </tr>
