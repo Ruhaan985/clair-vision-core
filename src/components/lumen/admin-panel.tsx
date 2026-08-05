@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { X, Users, Activity, Loader2, Shield, Globe2, RefreshCw, Ban, Undo2, Award } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -19,11 +20,14 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"overview" | "online" | "accounts">("overview");
   const [suspendTarget, setSuspendTarget] = useState<AdminOverview["accounts"][number] | null>(null);
+  const getOverview = useServerFn(getAdminOverview);
+  const updateRank = useServerFn(assignUserRank);
+  const removeSuspension = useServerFn(unsuspendUser);
 
   const load = () => {
     setLoading(true);
     setError(null);
-    getAdminOverview()
+    getOverview()
       .then((r) => setData(r))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
@@ -103,7 +107,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
               onSuspend={(a) => setSuspendTarget(a)}
               onUnsuspend={async (a) => {
                 try {
-                  await unsuspendUser({ data: { userId: a.user_id } });
+                  await removeSuspension({ data: { userId: a.user_id } });
                   toast.success(`Unsuspended ${a.display_name || a.email}`);
                   load();
                 } catch (e) {
@@ -112,7 +116,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
               }}
               onRank={async (a, rank) => {
                 try {
-                  await assignUserRank({ data: { userId: a.user_id, rank } });
+                  await updateRank({ data: { userId: a.user_id, rank } });
                   toast.success(`${a.display_name || a.email} is now ${RANK_DETAILS[rank].label}`);
                   load();
                 } catch (e) {
@@ -152,6 +156,7 @@ function SuspendDialog({
     "Your account has been suspended for violating our terms of service.",
   );
   const [submitting, setSubmitting] = useState(false);
+  const createSuspension = useServerFn(suspendUser);
 
   const submit = async () => {
     if (!message.trim()) {
@@ -160,7 +165,7 @@ function SuspendDialog({
     }
     setSubmitting(true);
     try {
-      await suspendUser({ data: { userId: account.user_id, reason, message: message.trim() } });
+      await createSuspension({ data: { userId: account.user_id, reason, message: message.trim() } });
       toast.success(`Suspended ${account.display_name || account.email}`);
       onDone();
     } catch (e) {
