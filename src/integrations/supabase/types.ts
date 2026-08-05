@@ -41,6 +41,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_ranks: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          rank: Database["public"]["Enums"]["lumen_rank"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          rank?: Database["public"]["Enums"]["lumen_rank"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          rank?: Database["public"]["Enums"]["lumen_rank"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -105,6 +126,15 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      lumen_rank:
+        | "bronze"
+        | "silver"
+        | "gold"
+        | "platinum"
+        | "diamond"
+        | "onyx"
+        | "nemesis"
+        | "arch_nemesis"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -233,6 +263,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      lumen_rank: [
+        "bronze",
+        "silver",
+        "gold",
+        "platinum",
+        "diamond",
+        "onyx",
+        "nemesis",
+        "arch_nemesis",
+      ],
     },
   },
 } as const
