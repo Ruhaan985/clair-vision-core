@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { X, Users, Activity, Loader2, Shield, Globe2, RefreshCw, Ban, Undo2, Award } from "lucide-react";
+import { X, Users, Activity, Loader2, Shield, Globe2, RefreshCw, Ban, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAdminOverview,
@@ -11,6 +11,7 @@ import {
 } from "@/lib/admin.functions";
 import { SUSPENSION_REASONS } from "@/lib/admin.constants";
 import { LUMEN_RANKS, RANK_DETAILS, type LumenRank } from "@/lib/ranks";
+import { RankBadge } from "@/components/lumen/rank-badge";
 import { findLanguage } from "@/lib/languages";
 import { cn } from "@/lib/utils";
 
@@ -386,8 +387,8 @@ function AccountsList({
                 <td className="px-3 py-2 text-muted-foreground">{a.preferred_language}</td>
                 <td className="px-3 py-2">
                   <label className="sr-only" htmlFor={`rank-${a.user_id}`}>Rank for {a.display_name}</label>
-                  <div className="flex items-center gap-1">
-                    <Award className="h-3 w-3 text-primary" />
+                  <div className="flex items-center gap-1.5">
+                    <RankBadge rank={a.rank} />
                     <select
                       id={`rank-${a.user_id}`}
                       value={a.rank}

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield, Award } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
@@ -17,6 +17,7 @@ import { useAdmin, usePresenceHeartbeat } from "@/hooks/use-admin";
 import { AdminPanel } from "@/components/lumen/admin-panel";
 import { useRank } from "@/hooks/use-rank";
 import { RANK_DETAILS } from "@/lib/ranks";
+import { RankBadge } from "@/components/lumen/rank-badge";
 import {
   Popover,
   PopoverContent,
@@ -179,9 +180,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               <div className="truncate text-xs font-medium text-foreground">
                 {profile?.display_name || user.email}
               </div>
-              <div className="flex items-center gap-1 truncate text-[10px] text-muted-foreground" title={RANK_DETAILS[rank].perk}>
-                <Award className="h-2.5 w-2.5 text-primary" />
-                {RANK_DETAILS[rank].label} · {RANK_DETAILS[rank].perk}
+              <div className="mt-1 flex items-center gap-1.5">
+                <RankBadge rank={rank} />
+                <span className="truncate text-[10px] text-muted-foreground">{RANK_DETAILS[rank].perk}</span>
               </div>
             </div>
             <button
