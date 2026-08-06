@@ -17,6 +17,7 @@ import { useAdmin, usePresenceHeartbeat } from "@/hooks/use-admin";
 import { AdminPanel } from "@/components/lumen/admin-panel";
 import { useRank } from "@/hooks/use-rank";
 import { RANK_DETAILS } from "@/lib/ranks";
+import { RankBadge } from "@/components/lumen/rank-badge";
 import {
   Popover,
   PopoverContent,
