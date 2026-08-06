@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { X, Users, Activity, Loader2, Shield, Globe2, RefreshCw, Ban, Undo2, Award } from "lucide-react";
+import { X, Users, Activity, Loader2, Shield, Globe2, RefreshCw, Ban, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAdminOverview,
