@@ -179,9 +179,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               <div className="truncate text-xs font-medium text-foreground">
                 {profile?.display_name || user.email}
               </div>
-              <div className="flex items-center gap-1 truncate text-[10px] text-muted-foreground" title={RANK_DETAILS[rank].perk}>
-                <Award className="h-2.5 w-2.5 text-primary" />
-                {RANK_DETAILS[rank].label} · {RANK_DETAILS[rank].perk}
+              <div className="mt-1 flex items-center gap-1.5">
+                <RankBadge rank={rank} />
+                <span className="truncate text-[10px] text-muted-foreground">{RANK_DETAILS[rank].perk}</span>
               </div>
             </div>
             <button
