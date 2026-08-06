@@ -206,6 +206,8 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     const ONLINE_MS = 2 * 60 * 1000;
     const DAY_MS = 24 * 60 * 60 * 1000;
 
+    const profileIds = new Set((profiles ?? []).map((p) => p.user_id as string));
+
     const accounts = (profiles ?? []).map((p) => {
       const meta = emailById.get(p.user_id as string);
       return {
@@ -221,6 +223,27 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         rank: rankMap.get(p.user_id as string) ?? "bronze",
       };
     });
+
+    // Include auth users that never got a profile row, so every registered
+    // account is visible in the console.
+    for (const u of authList.users) {
+      if (profileIds.has(u.id)) continue;
+      accounts.push({
+        user_id: u.id,
+        display_name:
+          (typeof u.user_metadata?.display_name === "string" ? u.user_metadata.display_name : "") ||
+          (u.email ? u.email.split("@")[0]! : "(no profile)"),
+        email: u.email ?? null,
+        preferred_language: "en",
+        created_at: u.created_at,
+        last_seen_at: null,
+        last_sign_in_at: u.last_sign_in_at ?? null,
+        is_admin: adminIds.has(u.id),
+        suspension: suspensionMap.get(u.id) ?? null,
+        rank: rankMap.get(u.id) ?? "bronze",
+      });
+    }
+    accounts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     const online = accounts
       .filter((a) => a.last_seen_at && now - new Date(a.last_seen_at).getTime() < ONLINE_MS)
