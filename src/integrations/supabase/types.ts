@@ -45,18 +45,21 @@ export type Database = {
         Row: {
           assigned_at: string
           assigned_by: string | null
+          points: number
           rank: Database["public"]["Enums"]["lumen_rank"]
           user_id: string
         }
         Insert: {
           assigned_at?: string
           assigned_by?: string | null
+          points?: number
           rank?: Database["public"]["Enums"]["lumen_rank"]
           user_id: string
         }
         Update: {
           assigned_at?: string
           assigned_by?: string | null
+          points?: number
           rank?: Database["public"]["Enums"]["lumen_rank"]
           user_id?: string
         }
@@ -122,6 +125,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      rank_for_points: {
+        Args: { _points: number }
+        Returns: Database["public"]["Enums"]["lumen_rank"]
       }
     }
     Enums: {

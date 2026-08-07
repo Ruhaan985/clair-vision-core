@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield, Trophy, KeyRound } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
@@ -15,9 +15,10 @@ import { useLanguage } from "@/hooks/use-language";
 import { LANGUAGES, findLanguage, type Language } from "@/lib/languages";
 import { useAdmin, usePresenceHeartbeat } from "@/hooks/use-admin";
 import { AdminPanel } from "@/components/lumen/admin-panel";
-import { useRank } from "@/hooks/use-rank";
-import { RANK_DETAILS } from "@/lib/ranks";
+import { useRankState } from "@/hooks/use-rank";
+import { rankProgress, RANK_DETAILS } from "@/lib/ranks";
 import { RankBadge } from "@/components/lumen/rank-badge";
+import { Leaderboard } from "@/components/lumen/leaderboard";
 import {
   Popover,
   PopoverContent,
@@ -35,8 +36,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [langOpen, setLangOpen] = useState(false);
   const [langQuery, setLangQuery] = useState("");
   const { isAdmin } = useAdmin();
-  const rank = useRank();
+  const { rank, points } = useRankState();
+  const progress = rankProgress(points);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
   usePresenceHeartbeat();
 
   const refresh = useCallback(() => setThreads(loadThreads()), []);
@@ -89,6 +92,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
     {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
+    {boardOpen && <Leaderboard onClose={() => setBoardOpen(false)} />}
     <aside className="flex h-full w-72 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       <div className="flex items-center gap-2.5 px-4 pt-5 pb-3">
         <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 glow-mint">
@@ -182,7 +186,20 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               </div>
               <div className="mt-1 flex items-center gap-1.5">
                 <RankBadge rank={rank} />
-                <span className="truncate text-[10px] text-muted-foreground">{RANK_DETAILS[rank].perk}</span>
+                <span className="truncate text-[10px] text-muted-foreground">
+                  {points.toLocaleString()} pts
+                </span>
+              </div>
+              <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${Math.round(progress.pct * 100)}%` }}
+                />
+              </div>
+              <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                {progress.next
+                  ? `${progress.remaining.toLocaleString()} pts to ${RANK_DETAILS[progress.next].label}`
+                  : "Max rank reached"}
               </div>
             </div>
             <button
@@ -201,6 +218,25 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           >
             <LogIn className="h-3.5 w-3.5 text-primary" />
             Sign in / Create account
+          </Link>
+        )}
+
+        <button
+          onClick={() => setBoardOpen(true)}
+          className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-primary/20"
+        >
+          <Trophy className="h-3.5 w-3.5 text-primary" />
+          Leaderboard
+        </button>
+
+        {user && (
+          <Link
+            to="/reset-password"
+            onClick={onNavigate}
+            className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-card/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/50"
+          >
+            <KeyRound className="h-3.5 w-3.5 text-primary" />
+            Change password
           </Link>
         )}
 

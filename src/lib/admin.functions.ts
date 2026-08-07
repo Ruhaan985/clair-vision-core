@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertLumenAdmin } from "@/lib/admin.server";
-import type { LumenRank } from "@/lib/ranks";
+import { RANK_DETAILS, type LumenRank } from "@/lib/ranks";
 
 export const checkIsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -129,6 +129,7 @@ export const assignUserRank = createServerFn({ method: "POST" })
       {
         user_id: data.userId,
         rank: data.rank,
+        points: RANK_DETAILS[data.rank].points,
         assigned_by: context.userId,
         assigned_at: new Date().toISOString(),
       },

@@ -36,7 +36,7 @@ const signInSchema = z.object({
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", display_name: "" });
 
@@ -49,6 +49,23 @@ function AuthPage() {
     if (busy) return;
     setBusy(true);
     try {
+      if (mode === "forgot") {
+        const email = form.email.trim();
+        if (!/^\S+@\S+\.\S+$/.test(email)) {
+          toast.error("Enter a valid email");
+          return;
+        }
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+        toast.success("If that email has a Lumen account, a reset link is on its way.");
+        setMode("signin");
+        return;
+      }
       if (mode === "signup") {
         const parsed = signUpSchema.safeParse(form);
         if (!parsed.success) {
@@ -115,12 +132,18 @@ function AuthPage() {
           </div>
           <div>
             <h1 className="text-lg font-semibold tracking-tight">
-              {mode === "signin" ? "Sign in to Lumen" : "Create your Lumen account"}
+              {mode === "signin"
+                ? "Sign in to Lumen"
+                : mode === "signup"
+                  ? "Create your Lumen account"
+                  : "Reset your password"}
             </h1>
             <p className="text-xs text-muted-foreground">
               {mode === "signin"
                 ? "Welcome back."
-                : "One account per person — display names are unique."}
+                : mode === "signup"
+                  ? "One account per person — display names are unique."
+                  : "We'll email you a secure link to set a new password."}
             </p>
           </div>
         </div>
@@ -152,6 +175,7 @@ function AuthPage() {
               required
             />
           </div>
+          {mode !== "forgot" && (
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Password</label>
             <input
@@ -164,18 +188,32 @@ function AuthPage() {
               required
             />
           </div>
+          )}
+          {mode === "signin" && (
+            <button
+              type="button"
+              onClick={() => setMode("forgot")}
+              className="text-xs text-primary hover:underline"
+            >
+              Forgot / change password?
+            </button>
+          )}
           <button
             type="submit"
             disabled={busy}
             className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {mode === "signin" ? "Sign in" : "Create account"}
+            {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
           </button>
         </form>
 
         <div className="mt-4 text-center text-xs text-muted-foreground">
-          {mode === "signin" ? (
+          {mode === "forgot" ? (
+            <button className="text-primary hover:underline" onClick={() => setMode("signin")}>
+              Back to sign in
+            </button>
+          ) : mode === "signin" ? (
             <>
               New to Lumen?{" "}
               <button className="text-primary hover:underline" onClick={() => setMode("signup")}>

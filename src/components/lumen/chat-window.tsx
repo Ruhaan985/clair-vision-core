@@ -55,6 +55,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { languageLabel } from "@/lib/languages";
 import { useRank } from "@/hooks/use-rank";
+import { awardPoints } from "@/lib/ranks.functions";
 import { RANK_DETAILS } from "@/lib/ranks";
 
 async function downloadImage(url: string, prompt?: string) {
@@ -347,6 +348,11 @@ export function ChatWindow({ threadId }: { threadId: string }) {
       ? `[[CODE_ONLY]] ${trimmed || "(see attached)"}`
       : trimmed || "(see attached)";
     sendMessage({ text: finalText, files });
+    if (user) {
+      void awardPoints()
+        .then(() => window.dispatchEvent(new CustomEvent("lumen:points-changed")))
+        .catch(() => {});
+    }
     setInput("");
     setAttachments([]);
     setMode("chat");
@@ -406,7 +412,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_10px] shadow-primary/60" />
           <span className="truncate text-sm font-medium tracking-tight">Lumen</span>
           {codeMode && (
-            <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-sky-400/60 bg-sky-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-300">
               <Terminal className="h-3 w-3" /> Code Mode
             </span>
           )}
@@ -435,7 +441,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             className={cn(
               "inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background transition hover:text-foreground",
               codeMode
-                ? "border-emerald-500/60 text-emerald-400"
+                ? "border-sky-400/70 text-sky-300"
                 : "border-border text-muted-foreground",
               !user && "opacity-60",
             )}
