@@ -36,7 +36,7 @@ const signInSchema = z.object({
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", display_name: "" });
 
@@ -49,6 +49,23 @@ function AuthPage() {
     if (busy) return;
     setBusy(true);
     try {
+      if (mode === "forgot") {
+        const email = form.email.trim();
+        if (!/^\S+@\S+\.\S+$/.test(email)) {
+          toast.error("Enter a valid email");
+          return;
+        }
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+        toast.success("If that email has a Lumen account, a reset link is on its way.");
+        setMode("signin");
+        return;
+      }
       if (mode === "signup") {
         const parsed = signUpSchema.safeParse(form);
         if (!parsed.success) {
