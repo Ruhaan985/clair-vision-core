@@ -55,6 +55,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { languageLabel } from "@/lib/languages";
 import { useRank } from "@/hooks/use-rank";
+import { awardPoints } from "@/lib/ranks.functions";
 import { RANK_DETAILS } from "@/lib/ranks";
 
 async function downloadImage(url: string, prompt?: string) {
@@ -347,6 +348,11 @@ export function ChatWindow({ threadId }: { threadId: string }) {
       ? `[[CODE_ONLY]] ${trimmed || "(see attached)"}`
       : trimmed || "(see attached)";
     sendMessage({ text: finalText, files });
+    if (user) {
+      void awardPoints()
+        .then(() => window.dispatchEvent(new CustomEvent("lumen:points-changed")))
+        .catch(() => {});
+    }
     setInput("");
     setAttachments([]);
     setMode("chat");
