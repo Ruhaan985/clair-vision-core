@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield, Trophy, KeyRound } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
@@ -15,9 +15,10 @@ import { useLanguage } from "@/hooks/use-language";
 import { LANGUAGES, findLanguage, type Language } from "@/lib/languages";
 import { useAdmin, usePresenceHeartbeat } from "@/hooks/use-admin";
 import { AdminPanel } from "@/components/lumen/admin-panel";
-import { useRank } from "@/hooks/use-rank";
-import { RANK_DETAILS } from "@/lib/ranks";
+import { useRankState } from "@/hooks/use-rank";
+import { rankProgress, RANK_DETAILS } from "@/lib/ranks";
 import { RankBadge } from "@/components/lumen/rank-badge";
+import { Leaderboard } from "@/components/lumen/leaderboard";
 import {
   Popover,
   PopoverContent,
@@ -35,8 +36,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [langOpen, setLangOpen] = useState(false);
   const [langQuery, setLangQuery] = useState("");
   const { isAdmin } = useAdmin();
-  const rank = useRank();
+  const { rank, points } = useRankState();
+  const progress = rankProgress(points);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
   usePresenceHeartbeat();
 
   const refresh = useCallback(() => setThreads(loadThreads()), []);
@@ -89,6 +92,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
     {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
+    {boardOpen && <Leaderboard onClose={() => setBoardOpen(false)} />}
     <aside className="flex h-full w-72 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       <div className="flex items-center gap-2.5 px-4 pt-5 pb-3">
         <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 glow-mint">
