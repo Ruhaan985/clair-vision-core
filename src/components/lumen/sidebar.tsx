@@ -186,7 +186,20 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               </div>
               <div className="mt-1 flex items-center gap-1.5">
                 <RankBadge rank={rank} />
-                <span className="truncate text-[10px] text-muted-foreground">{RANK_DETAILS[rank].perk}</span>
+                <span className="truncate text-[10px] text-muted-foreground">
+                  {points.toLocaleString()} pts
+                </span>
+              </div>
+              <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${Math.round(progress.pct * 100)}%` }}
+                />
+              </div>
+              <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                {progress.next
+                  ? `${progress.remaining.toLocaleString()} pts to ${RANK_DETAILS[progress.next].label}`
+                  : "Max rank reached"}
               </div>
             </div>
             <button
@@ -205,6 +218,25 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           >
             <LogIn className="h-3.5 w-3.5 text-primary" />
             Sign in / Create account
+          </Link>
+        )}
+
+        <button
+          onClick={() => setBoardOpen(true)}
+          className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-primary/20"
+        >
+          <Trophy className="h-3.5 w-3.5 text-primary" />
+          Leaderboard
+        </button>
+
+        {user && (
+          <Link
+            to="/reset-password"
+            onClick={onNavigate}
+            className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-card/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/50"
+          >
+            <KeyRound className="h-3.5 w-3.5 text-primary" />
+            Change password
           </Link>
         )}
 
