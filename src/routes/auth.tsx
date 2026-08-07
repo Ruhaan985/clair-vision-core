@@ -132,12 +132,18 @@ function AuthPage() {
           </div>
           <div>
             <h1 className="text-lg font-semibold tracking-tight">
-              {mode === "signin" ? "Sign in to Lumen" : "Create your Lumen account"}
+              {mode === "signin"
+                ? "Sign in to Lumen"
+                : mode === "signup"
+                  ? "Create your Lumen account"
+                  : "Reset your password"}
             </h1>
             <p className="text-xs text-muted-foreground">
               {mode === "signin"
                 ? "Welcome back."
-                : "One account per person — display names are unique."}
+                : mode === "signup"
+                  ? "One account per person — display names are unique."
+                  : "We'll email you a secure link to set a new password."}
             </p>
           </div>
         </div>
@@ -169,6 +175,7 @@ function AuthPage() {
               required
             />
           </div>
+          {mode !== "forgot" && (
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Password</label>
             <input
@@ -181,18 +188,32 @@ function AuthPage() {
               required
             />
           </div>
+          )}
+          {mode === "signin" && (
+            <button
+              type="button"
+              onClick={() => setMode("forgot")}
+              className="text-xs text-primary hover:underline"
+            >
+              Forgot / change password?
+            </button>
+          )}
           <button
             type="submit"
             disabled={busy}
             className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {mode === "signin" ? "Sign in" : "Create account"}
+            {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
           </button>
         </form>
 
         <div className="mt-4 text-center text-xs text-muted-foreground">
-          {mode === "signin" ? (
+          {mode === "forgot" ? (
+            <button className="text-primary hover:underline" onClick={() => setMode("signin")}>
+              Back to sign in
+            </button>
+          ) : mode === "signin" ? (
             <>
               New to Lumen?{" "}
               <button className="text-primary hover:underline" onClick={() => setMode("signup")}>
