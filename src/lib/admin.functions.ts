@@ -119,9 +119,6 @@ export type AdminOverview = {
   }>;
 };
 
-/** Fixed point grants an admin can hand out. */
-export const POINT_GRANTS = [50, 100, 250, 500, 1000] as const;
-
 export const grantUserPoints = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { userId: string; amount: number }) => data)
