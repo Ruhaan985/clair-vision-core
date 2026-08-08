@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertLumenAdmin } from "@/lib/admin.server";
 import { RANK_DETAILS, type LumenRank } from "@/lib/ranks";
+import { POINT_GRANTS } from "@/lib/admin.constants";
 
 export const checkIsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
