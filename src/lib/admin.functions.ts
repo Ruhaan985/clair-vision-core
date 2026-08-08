@@ -115,8 +115,43 @@ export type AdminOverview = {
     is_admin: boolean;
     suspension: { reason: string; message: string; created_at: string } | null;
     rank: LumenRank;
+    points: number;
   }>;
 };
+
+/** Fixed point grants an admin can hand out. */
+export const POINT_GRANTS = [50, 100, 250, 500, 1000] as const;
+
+export const grantUserPoints = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; amount: number }) => data)
+  .handler(async ({ data, context }) => {
+    const admin = await assertLumenAdmin(context);
+    if (!(POINT_GRANTS as readonly number[]).includes(data.amount)) {
+      throw new Error("Invalid point amount");
+    }
+    const { data: existing } = await admin
+      .from("user_ranks")
+      .select("points")
+      .eq("user_id", data.userId)
+      .maybeSingle();
+    const points = Math.max(0, Math.min(10000, ((existing?.points as number) ?? 0) + data.amount));
+    const { data: row, error } = await admin
+      .from("user_ranks")
+      .upsert(
+        {
+          user_id: data.userId,
+          points,
+          assigned_by: context.userId,
+          assigned_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      )
+      .select("points, rank")
+      .single();
+    if (error) throw new Error(error.message);
+    return { points: (row.points as number) ?? points, rank: row.rank as LumenRank };
+  });
 
 export const assignUserRank = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -199,9 +234,10 @@ export const getAdminOverview = createServerFn({ method: "GET" })
 
     const { data: rankRows, error: rankErr } = await supabaseAdmin
       .from("user_ranks")
-      .select("user_id, rank");
+      .select("user_id, rank, points");
     if (rankErr) throw new Error(rankErr.message);
     const rankMap = new Map((rankRows ?? []).map((r) => [r.user_id as string, r.rank as LumenRank]));
+    const pointsMap = new Map((rankRows ?? []).map((r) => [r.user_id as string, (r.points as number) ?? 0]));
 
     const now = Date.now();
     const ONLINE_MS = 2 * 60 * 1000;
@@ -222,6 +258,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         is_admin: adminIds.has(p.user_id as string),
         suspension: suspensionMap.get(p.user_id as string) ?? null,
         rank: rankMap.get(p.user_id as string) ?? "bronze",
+        points: pointsMap.get(p.user_id as string) ?? 0,
       };
     });
 
@@ -242,6 +279,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         is_admin: adminIds.has(u.id),
         suspension: suspensionMap.get(u.id) ?? null,
         rank: rankMap.get(u.id) ?? "bronze",
+        points: pointsMap.get(u.id) ?? 0,
       });
     }
     accounts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
