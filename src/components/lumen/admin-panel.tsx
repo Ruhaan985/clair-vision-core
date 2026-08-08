@@ -418,9 +418,6 @@ function AccountsList({
                     </select>
                   </div>
                 </td>
-                <td className="px-3 py-2 text-muted-foreground">
-                  {new Date(a.created_at).toLocaleDateString()}
-                </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1.5">
                     <span className="w-12 shrink-0 tabular-nums font-medium">
@@ -438,6 +435,9 @@ function AccountsList({
                       ))}
                     </div>
                   </div>
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">
+                  {new Date(a.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-3 py-2 text-muted-foreground">{timeAgo(a.last_seen_at)}</td>
                 <td className="px-3 py-2">
