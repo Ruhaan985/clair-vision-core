@@ -8,10 +8,9 @@ import {
   unsuspendUser,
   assignUserRank,
   grantUserPoints,
-  POINT_GRANTS,
   type AdminOverview,
 } from "@/lib/admin.functions";
-import { SUSPENSION_REASONS } from "@/lib/admin.constants";
+import { SUSPENSION_REASONS, POINT_GRANTS } from "@/lib/admin.constants";
 import { LUMEN_RANKS, RANK_DETAILS, type LumenRank } from "@/lib/ranks";
 import { RankBadge } from "@/components/lumen/rank-badge";
 import { findLanguage } from "@/lib/languages";
