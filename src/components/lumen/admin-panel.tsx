@@ -7,9 +7,10 @@ import {
   suspendUser,
   unsuspendUser,
   assignUserRank,
+  grantUserPoints,
   type AdminOverview,
 } from "@/lib/admin.functions";
-import { SUSPENSION_REASONS } from "@/lib/admin.constants";
+import { SUSPENSION_REASONS, POINT_GRANTS } from "@/lib/admin.constants";
 import { LUMEN_RANKS, RANK_DETAILS, type LumenRank } from "@/lib/ranks";
 import { RankBadge } from "@/components/lumen/rank-badge";
 import { findLanguage } from "@/lib/languages";
@@ -23,6 +24,7 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
   const [suspendTarget, setSuspendTarget] = useState<AdminOverview["accounts"][number] | null>(null);
   const getOverview = useServerFn(getAdminOverview);
   const updateRank = useServerFn(assignUserRank);
+  const addPoints = useServerFn(grantUserPoints);
   const removeSuspension = useServerFn(unsuspendUser);
 
   const load = () => {
@@ -119,6 +121,17 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
                 try {
                   await updateRank({ data: { userId: a.user_id, rank } });
                   toast.success(`${a.display_name || a.email} is now ${RANK_DETAILS[rank].label}`);
+                  load();
+                } catch (e) {
+                  toast.error((e as Error).message);
+                }
+              }}
+              onGrantPoints={async (a, amount) => {
+                try {
+                  const r = await addPoints({ data: { userId: a.user_id, amount } });
+                  toast.success(
+                    `+${amount} pts to ${a.display_name || a.email} · now ${r.points.toLocaleString()} (${RANK_DETAILS[r.rank].label})`,
+                  );
                   load();
                 } catch (e) {
                   toast.error((e as Error).message);
@@ -326,11 +339,13 @@ function AccountsList({
   onSuspend,
   onUnsuspend,
   onRank,
+  onGrantPoints,
 }: {
   data: AdminOverview;
   onSuspend: (a: AdminOverview["accounts"][number]) => void;
   onUnsuspend: (a: AdminOverview["accounts"][number]) => void;
   onRank: (a: AdminOverview["accounts"][number], rank: LumenRank) => void;
+  onGrantPoints: (a: AdminOverview["accounts"][number], amount: number) => void;
 }) {
   const [q, setQ] = useState("");
   const rows = data.accounts.filter((a) => {
@@ -357,6 +372,7 @@ function AccountsList({
               <th className="px-3 py-2">Email</th>
               <th className="px-3 py-2">Lang</th>
               <th className="px-3 py-2">Rank</th>
+              <th className="px-3 py-2">Points</th>
               <th className="px-3 py-2">Joined</th>
               <th className="px-3 py-2">Last seen</th>
               <th className="px-3 py-2">Actions</th>
@@ -401,6 +417,24 @@ function AccountsList({
                     </select>
                   </div>
                 </td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-12 shrink-0 tabular-nums font-medium">
+                      {a.points.toLocaleString()}
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {POINT_GRANTS.map((amount) => (
+                        <button
+                          key={amount}
+                          onClick={() => onGrantPoints(a, amount)}
+                          className="rounded-md border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/20"
+                        >
+                          +{amount}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </td>
                 <td className="px-3 py-2 text-muted-foreground">
                   {new Date(a.created_at).toLocaleDateString()}
                 </td>
@@ -428,7 +462,7 @@ function AccountsList({
             ))}
             {rows.length === 0 && (
               <tr>
-                 <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                 <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">
                   No matches.
                 </td>
               </tr>

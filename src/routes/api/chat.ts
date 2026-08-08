@@ -362,11 +362,54 @@ async function fetchLocationWeather(request: Request): Promise<string | null> {
 async function handleImage(prompt: string, writer: StreamWriter) {
   const clean = (prompt || "abstract neon mint dreamscape").trim();
   const seed = Math.floor(Math.random() * 1_000_000);
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+  const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
     clean,
   )}?width=1024&height=1024&nologo=true&enhance=true&seed=${seed}`;
-  writeTool(writer, "generate_image", { prompt: clean }, { imageUrl: url, prompt: clean });
+
+  // Announce the pending tool call so the client shows the generating animation.
+  const toolCallId = `tool-generate_image-${Date.now().toString(36)}`;
+  writer.write({
+    type: "tool-input-available",
+    toolCallId,
+    toolName: "generate_image",
+    input: { prompt: clean },
+  });
+
+  const dataUrl = await generateImageDataUrl(clean);
+  writer.write({
+    type: "tool-output-available",
+    toolCallId,
+    output: { imageUrl: dataUrl ?? fallbackUrl, prompt: clean },
+  });
   await streamText(writer, `Here’s your image of **${clean}**.`);
+}
+
+/** Generate a real image through the Lovable AI Gateway; null if unavailable. */
+async function generateImageDataUrl(prompt: string): Promise<string | null> {
+  const key = (globalThis as { process?: { env?: Record<string, string> } }).process?.env
+    ?.LOVABLE_API_KEY;
+  if (!key) return null;
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: "openai/gpt-image-2",
+        prompt,
+        quality: "low",
+        size: "1024x1024",
+        n: 1,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { data?: Array<{ b64_json?: string; url?: string }> };
+    const first = data.data?.[0];
+    if (first?.b64_json) return `data:image/png;base64,${first.b64_json}`;
+    if (first?.url) return first.url;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 async function handlePdf(prompt: string, writer: StreamWriter) {

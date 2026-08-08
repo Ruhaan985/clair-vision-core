@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { LumenRank } from "@/lib/ranks";
+import { LUMEN_RANKS, type LumenRank } from "@/lib/ranks";
 
 export type LeaderboardEntry = {
   user_id: string;
@@ -18,7 +18,14 @@ export const getLeaderboard = createServerFn({ method: "GET" }).handler(
       .select("user_id, rank, points")
       .order("points", { ascending: false })
       .limit(50);
-    const ids = (ranks ?? []).map((r) => r.user_id as string);
+    // Rank tier is the primary sort key; points only break ties inside a tier.
+    const rankIndex = (r: string) => LUMEN_RANKS.indexOf(r as LumenRank);
+    const sorted = [...(ranks ?? [])].sort((a, b) => {
+      const diff = rankIndex(b.rank as string) - rankIndex(a.rank as string);
+      if (diff !== 0) return diff;
+      return ((b.points as number) ?? 0) - ((a.points as number) ?? 0);
+    });
+    const ids = sorted.map((r) => r.user_id as string);
     const { data: profiles } = ids.length
       ? await supabaseAdmin.from("profiles").select("user_id, display_name").in("user_id", ids)
       : { data: [] as Array<{ user_id: string; display_name: string }> };
@@ -26,7 +33,7 @@ export const getLeaderboard = createServerFn({ method: "GET" }).handler(
       (profiles ?? []).map((p) => [p.user_id as string, (p.display_name as string) || "Anonymous"]),
     );
     return {
-      entries: (ranks ?? []).map((r) => ({
+      entries: sorted.map((r) => ({
         user_id: r.user_id as string,
         display_name: nameById.get(r.user_id as string) ?? "Anonymous",
         rank: r.rank as LumenRank,

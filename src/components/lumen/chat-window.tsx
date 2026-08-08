@@ -862,6 +862,14 @@ function MessageBody({ message }: { message: UIMessage }) {
                 alt={img.prompt ?? "Generated image"}
                 className="block h-auto w-full"
                 loading="lazy"
+                onError={(e) => {
+                  const el = e.currentTarget;
+                  if (el.dataset.fallback === "1") return;
+                  el.dataset.fallback = "1";
+                  el.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+                    img.prompt ?? "abstract neon mint dreamscape",
+                  )}?width=1024&height=1024&nologo=true`;
+                }}
               />
               {img.prompt && (
                 <figcaption className="px-3 py-2 text-[11px] text-muted-foreground">
