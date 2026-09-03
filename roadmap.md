@@ -1,0 +1,4 @@
+- [ ] Remove ambient background music without touching voice/audio tools
+- [ ] Replace the opening splash with a lightweight cinematic intro and skip behavior
+- [ ] Add points-based Plans panel with secure purchase recording
+- [ ] Verify build and preview behavior
