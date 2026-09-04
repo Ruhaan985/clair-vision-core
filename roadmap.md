@@ -1,4 +1,5 @@
-- [ ] Remove ambient background music without touching voice/audio tools
-- [ ] Replace the opening splash with a lightweight cinematic intro and skip behavior
-- [ ] Add points-based Plans panel with secure purchase recording
-- [ ] Verify build and preview behavior
+- [ ] Replace global theme tokens and typography with Aster
+- [ ] Reskin sidebar, real chat shell, composer, and mobile drawer
+- [ ] Add trajectory hero, sparse stars, and reduced-motion handling
+- [ ] Restyle opening screen and supporting routes
+- [ ] Verify desktop/mobile behavior and runtime health
