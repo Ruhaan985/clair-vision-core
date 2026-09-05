@@ -31,8 +31,6 @@ import {
   Film,
   Play,
   Pause,
-  Volume2,
-  VolumeX,
   Calculator as CalculatorIcon,
   CloudSun,
   Terminal,
@@ -46,9 +44,7 @@ import {
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { getThread, upsertThread, deriveTitle } from "@/lib/threads";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/lumen-logo.png";
 import { ThemeToggle } from "@/components/lumen/theme-toggle";
-import { useAmbientMusic } from "@/hooks/use-ambient-music";
 import { Calculator } from "@/components/lumen/calculator";
 import { WeatherPanel } from "@/components/lumen/weather-panel";
 import { useAuth } from "@/hooks/use-auth";
@@ -269,16 +265,6 @@ export function ChatWindow({ threadId }: { threadId: string }) {
 
   const isBusy = status === "submitted" || status === "streaming";
 
-  // Ambient background music — user-controlled, auto-starts on first AI activity.
-  const music = useAmbientMusic(false);
-  const musicAutoStartedRef = useRef(false);
-  useEffect(() => {
-    if (isBusy && !musicAutoStartedRef.current && !music.playing) {
-      musicAutoStartedRef.current = true;
-      void music.start();
-    }
-  }, [isBusy, music]);
-
   // Persist on every update
   useEffect(() => {
     if (messages.length === 0) return;
@@ -388,7 +374,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
   return (
     <div
       className={cn(
-        "relative flex h-full flex-1 flex-col aurora-bg animate-chat-open",
+        "aster-sky relative flex h-full flex-1 flex-col bg-background",
         codeMode && "code-terminal",
       )}
     >
@@ -406,13 +392,13 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           </div>
         </div>
       )}
-      <header className="flex items-center justify-between gap-2 border-b border-border/60 bg-background/40 px-3 py-3 pl-14 backdrop-blur md:px-5 md:pl-5 animate-header-glide">
+      <header className="relative z-10 flex items-center justify-between gap-2 border-b border-border bg-background/80 px-3 py-2.5 pl-14 backdrop-blur md:px-5 md:pl-5">
         {/* calc-anchor */}
         <div className="flex min-w-0 items-center gap-2">
-          <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_10px] shadow-primary/60" />
+          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
           <span className="truncate text-sm font-medium tracking-tight">Lumen</span>
           {codeMode && (
-            <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-sky-400/60 bg-sky-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-300">
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
               <Terminal className="h-3 w-3" /> Code Mode
             </span>
           )}
@@ -441,7 +427,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             className={cn(
               "inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background transition hover:text-foreground",
               codeMode
-                ? "border-sky-400/70 text-sky-300"
+                ? "border-primary/50 text-primary"
                 : "border-border text-muted-foreground",
               !user && "opacity-60",
             )}
@@ -470,14 +456,6 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             <CloudSun className="h-4 w-4" />
           </button>
           <button
-            onClick={music.toggle}
-            aria-label={music.playing ? "Mute background music" : "Play background music"}
-            title={music.playing ? "Mute music" : "Play music"}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition hover:text-foreground"
-          >
-            {music.playing ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-          </button>
-          <button
             onClick={() => { setShowCalc((v) => !v); setShowWeather(false); }}
             aria-label={showCalc ? "Close calculator" : "Open calculator"}
             title="Calculator"
@@ -494,7 +472,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
         </div>
       </header>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="relative z-[1] flex-1 overflow-hidden">
         {isEmpty ? (
           <EmptyState onPick={submit} />
         ) : (
@@ -506,7 +484,6 @@ export function ChatWindow({ threadId }: { threadId: string }) {
                   key={m.id}
                   className={cn(
                     "mb-5",
-                    m.role === "user" ? "animate-msg-in-right" : "animate-msg-in",
                   )}
                 >
                   <MessageContent>
@@ -515,7 +492,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
                 </Message>
               ))}
               {status === "submitted" && (
-                <Message from="assistant" className="mb-5 animate-msg-in">
+                <Message from="assistant" className="mb-5">
                   <MessageContent>
                     <ThinkingIndicator />
                   </MessageContent>
@@ -532,7 +509,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
         )}
       </div>
 
-      <div className="border-t border-border/60 bg-background/40 px-3 py-3 backdrop-blur md:px-4 md:py-4 animate-composer-rise">
+      <div className="relative z-10 border-t border-border bg-background/85 px-3 py-3 backdrop-blur md:px-4 md:py-4">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -587,8 +564,8 @@ export function ChatWindow({ threadId }: { threadId: string }) {
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all",
                     active
-                      ? "border-primary/60 bg-primary/15 text-primary glow-mint"
-                      : "border-border bg-card/40 text-muted-foreground hover:text-foreground",
+                      ? "border-primary/45 bg-primary/10 text-primary"
+                      : "border-border bg-card/40 text-muted-foreground hover:border-primary/25 hover:text-foreground",
                   )}
                 >
                   <Icon className="h-3 w-3" />
@@ -599,9 +576,9 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           </div>
           <div
             className={cn(
-              "group relative flex items-end gap-2 rounded-2xl border border-border bg-card/80 p-2 pl-4 shadow-lg transition-all",
-              "focus-within:border-primary/60 focus-within:glow-mint",
-              input.length > 0 && !isBusy && "is-typing border-primary/40",
+              "group relative flex items-end gap-2 rounded-xl border border-border bg-card/80 p-2 pl-3 transition-colors",
+              "focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/20",
+              input.length > 0 && !isBusy && "border-primary/30",
             )}
             onDragOver={(e) => {
               e.preventDefault();
@@ -682,7 +659,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               className={cn(
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all",
                 (input.trim() || attachments.length) && !isBusy
-                  ? "bg-primary text-primary-foreground hover:brightness-110 glow-mint"
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
                   : "bg-muted text-muted-foreground",
               )}
             >
@@ -700,13 +677,11 @@ export function ChatWindow({ threadId }: { threadId: string }) {
 
 function EmptyState({ onPick }: { onPick: (text: string) => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-6 pb-6">
+    <div className="flex h-full flex-col items-center justify-center px-5 pb-5 pt-8">
       <div className="mb-6 flex flex-col items-center text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/15 glow-mint">
-          <img src={logo} alt="Lumen" width={48} height={48} className="h-12 w-12" />
-        </div>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          How can I help you today?
+        <TrajectoryMark />
+        <h1 className="mt-5 font-serif text-3xl font-normal italic sm:text-4xl">
+          How can I help you tonight?
         </h1>
         <p className="mt-2 max-w-md text-sm text-muted-foreground">
           Ask Lumen anything — code, ideas, plans, explanations, writing, math.
@@ -720,10 +695,10 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
             <button
               key={s.title}
               onClick={() => onPick(s.prompt)}
-              className="group rounded-xl border border-border bg-card/60 p-4 text-left transition-all hover:border-primary/50 hover:bg-card hover:-translate-y-0.5"
+              className="group rounded-lg border border-border bg-card/45 p-4 text-left transition-[border-color,transform,background-color] duration-200 hover:-translate-y-px hover:border-primary/35 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
             >
               <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-primary">
                   <Icon className="h-3.5 w-3.5" />
                 </span>
                 <span className="text-sm font-medium">{s.title}</span>
@@ -736,6 +711,21 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
         })}
       </div>
     </div>
+  );
+}
+
+function TrajectoryMark() {
+  return (
+    <svg
+      aria-label="Lumen trajectory"
+      className="aster-trajectory h-20 w-28 text-primary"
+      viewBox="0 0 112 80"
+      fill="none"
+      role="img"
+    >
+      <path className="aster-arrow" d="M32 54C44 47 53 37 59 22M49 28l10-6 2 12" />
+      <path className="aster-horizon" d="M10 62c24-13 68-13 92 0" />
+    </svg>
   );
 }
 
@@ -855,7 +845,7 @@ function MessageBody({ message }: { message: UIMessage }) {
           {generatedImages.map((img, i) => (
             <figure
               key={i}
-              className="overflow-hidden rounded-xl border border-border bg-card/40 animate-image-reveal glow-mint"
+              className="overflow-hidden rounded-lg border border-border bg-card/40 animate-image-reveal"
             >
               <img
                 src={img.url}
@@ -954,7 +944,7 @@ function DocumentCard({
   onDownload: () => void | Promise<void>;
 }) {
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-primary/40 bg-gradient-to-br from-primary/10 via-card/60 to-card/40 p-3 glow-mint">
+    <div className="group flex items-center gap-3 rounded-lg border border-border bg-card/60 p-3">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary">
         <Icon className="h-5 w-5" />
       </div>
@@ -1086,8 +1076,8 @@ function StoryboardCard({ payload }: { payload: StoryboardPayload }) {
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-primary/40 bg-card/40 glow-mint">
-      <div className="flex items-center gap-2 border-b border-border/60 bg-gradient-to-r from-primary/15 to-transparent px-4 py-2.5">
+    <div className="overflow-hidden rounded-lg border border-border bg-card/40">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
         <Film className="h-4 w-4 text-primary" />
         <div className="min-w-0 flex-1">
           <div className="text-[10px] uppercase tracking-wider text-primary/80">
@@ -1149,7 +1139,7 @@ function StoryboardCard({ payload }: { payload: StoryboardPayload }) {
               className="absolute inset-0 flex items-center justify-center bg-black/30 transition hover:bg-black/40"
               aria-label="Play"
             >
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/90 text-primary-foreground glow-mint">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/90 text-primary-foreground">
                 <Play className="h-7 w-7 translate-x-0.5" fill="currentColor" />
               </span>
             </button>
@@ -1396,7 +1386,7 @@ function ImageGeneratingCard({ prompt }: { prompt: string }) {
 
 function ThinkingIndicator() {
   return (
-    <div className="inline-flex items-center gap-3 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-card/60 to-card/40 px-4 py-2.5">
+    <div className="inline-flex items-center gap-3 rounded-lg border border-border bg-card/60 px-4 py-2.5">
       <Sparkles className="h-4 w-4 text-primary animate-float-y" />
       <Shimmer className="text-xs">Lumen is thinking</Shimmer>
       <span className="dot-bounce inline-flex items-center" aria-hidden>
