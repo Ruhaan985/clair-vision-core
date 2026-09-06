@@ -30,13 +30,13 @@ function ThreadPage() {
         <div
           onClick={() => setMobileOpen(false)}
           className={cn(
-            "absolute inset-0 bg-black/60 transition-opacity",
+            "absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity",
             mobileOpen ? "opacity-100" : "opacity-0",
           )}
         />
         <div
           className={cn(
-            "absolute inset-y-0 left-0 transition-transform",
+            "absolute inset-y-0 left-0 transition-transform duration-300",
             mobileOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
@@ -47,7 +47,7 @@ function ThreadPage() {
       <div className="relative flex min-w-0 flex-1 flex-col">
         <button
           onClick={() => setMobileOpen((v) => !v)}
-          className="absolute left-3 top-3 z-30 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-foreground md:hidden"
+          className="absolute left-3 top-3 z-30 inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:hidden"
           aria-label="Toggle menu"
         >
           {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
