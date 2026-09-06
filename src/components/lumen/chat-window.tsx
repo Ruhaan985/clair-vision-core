@@ -378,6 +378,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
         codeMode && "code-terminal",
       )}
     >
+      <StarField />
       {showCalc && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 top-14 z-30 flex items-end justify-end p-3 md:p-5">
           <div className="pointer-events-auto animate-msg-in-right">
@@ -392,11 +393,11 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           </div>
         </div>
       )}
-      <header className="relative z-10 flex items-center justify-between gap-2 border-b border-border bg-background/80 px-3 py-2.5 pl-14 backdrop-blur md:px-5 md:pl-5">
+      <header className="relative z-10 flex min-h-[65px] items-center justify-between gap-2 border-b border-border/60 bg-background/70 px-4 pl-14 backdrop-blur-sm md:px-8 md:pl-8">
         {/* calc-anchor */}
         <div className="flex min-w-0 items-center gap-2">
           <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-          <span className="truncate text-sm font-medium tracking-tight">Lumen</span>
+          <span className="truncate text-[13px] font-normal text-muted-foreground">Lumen</span>
           {codeMode && (
             <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
               <Terminal className="h-3 w-3" /> Code Mode
@@ -425,10 +426,10 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             aria-label={codeMode ? "Exit code mode" : "Enter code mode"}
             title="Coding-only tab"
             className={cn(
-              "inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background transition hover:text-foreground",
+               "inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent bg-transparent transition hover:border-border hover:bg-foreground/[0.02] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               codeMode
                 ? "border-primary/50 text-primary"
-                : "border-border text-muted-foreground",
+                 : "text-muted-foreground",
               !user && "opacity-60",
             )}
           >
@@ -446,10 +447,10 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             aria-label={showWeather ? "Close weather" : "Open weather & location"}
             title="Weather & location"
             className={cn(
-              "inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background transition hover:text-foreground",
+               "inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent bg-transparent transition hover:border-border hover:bg-foreground/[0.02] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               showWeather
                 ? "border-primary/60 text-primary"
-                : "border-border text-muted-foreground",
+                 : "text-muted-foreground",
               !user && "opacity-60",
             )}
           >
@@ -460,10 +461,10 @@ export function ChatWindow({ threadId }: { threadId: string }) {
             aria-label={showCalc ? "Close calculator" : "Open calculator"}
             title="Calculator"
             className={cn(
-              "inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background transition hover:text-foreground",
+               "inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent bg-transparent transition hover:border-border hover:bg-foreground/[0.02] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               showCalc
                 ? "border-primary/60 text-primary"
-                : "border-border text-muted-foreground",
+                 : "text-muted-foreground",
             )}
           >
             <CalculatorIcon className="h-4 w-4" />
@@ -509,13 +510,13 @@ export function ChatWindow({ threadId }: { threadId: string }) {
         )}
       </div>
 
-      <div className="relative z-10 border-t border-border bg-background/85 px-3 py-3 backdrop-blur md:px-4 md:py-4">
+      <div className="relative z-10 bg-background/80 px-3 pb-5 pt-2 backdrop-blur-sm md:px-8 md:pb-6">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             submit(input);
           }}
-          className="mx-auto w-full max-w-3xl"
+           className="mx-auto w-full max-w-[680px]"
         >
           {attachments.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
@@ -552,7 +553,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               ))}
             </div>
           )}
-          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5">
             {MODES.map((m) => {
               const Icon = m.icon;
               const active = mode === m.id;
@@ -562,10 +563,10 @@ export function ChatWindow({ threadId }: { threadId: string }) {
                   type="button"
                   onClick={() => setMode(m.id)}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all",
+                     "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                     active
-                      ? "border-primary/45 bg-primary/10 text-primary"
-                      : "border-border bg-card/40 text-muted-foreground hover:border-primary/25 hover:text-foreground",
+                       ? "border-primary/40 bg-primary/[0.06] text-foreground"
+                       : "border-border/60 bg-transparent text-muted-foreground hover:border-border hover:text-foreground",
                   )}
                 >
                   <Icon className="h-3 w-3" />
@@ -576,8 +577,8 @@ export function ChatWindow({ threadId }: { threadId: string }) {
           </div>
           <div
             className={cn(
-              "group relative flex items-end gap-2 rounded-xl border border-border bg-card/80 p-2 pl-3 transition-colors",
-              "focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/20",
+               "group relative flex items-end gap-2 rounded-[14px] border border-border bg-card p-1.5 pl-2 transition-colors",
+               "focus-within:border-primary/45 focus-within:ring-1 focus-within:ring-primary/10",
               input.length > 0 && !isBusy && "border-primary/30",
             )}
             onDragOver={(e) => {
@@ -603,7 +604,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               aria-label="Attach files"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-muted hover:text-foreground"
+               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <Paperclip className="h-4 w-4" />
             </button>
@@ -614,7 +615,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
                 aria-label={isRecording ? "Stop recording" : "Start voice input"}
                 title={isRecording ? "Stop recording" : "Speak your message"}
                 className={cn(
-                  "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition",
+                   "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   isRecording
                     ? "bg-destructive/15 text-destructive"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -649,7 +650,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
                   ? "Ask a coding question — snippets, debugging, algorithms…"
                   : "Ask Lumen anything, attach an image, or say ‘draw…’"
               }
-              className="flex-1 resize-none bg-transparent py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
+               className="order-first flex-1 resize-none bg-transparent px-2 py-2.5 text-[13.5px] text-foreground placeholder:text-foreground/30 focus:outline-none sm:order-none"
               disabled={isBusy && status !== "streaming"}
             />
             <button
@@ -657,7 +658,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               disabled={(!input.trim() && attachments.length === 0) || isBusy}
               aria-label="Send"
               className={cn(
-                "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all",
+                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 (input.trim() || attachments.length) && !isBusy
                   ? "bg-primary text-primary-foreground hover:bg-primary/90"
                   : "bg-muted text-muted-foreground",
@@ -666,7 +667,7 @@ export function ChatWindow({ threadId }: { threadId: string }) {
               <Send className="h-4 w-4" />
             </button>
           </div>
-          <div className="mt-2 text-center text-[11px] text-muted-foreground">
+           <div className="mt-2.5 text-center text-[10.5px] text-foreground/30">
             Lumen can be wrong. Verify important info. Press <kbd className="rounded bg-muted px-1 py-0.5 text-[10px]">Shift</kbd>+<kbd className="rounded bg-muted px-1 py-0.5 text-[10px]">Enter</kbd> for a new line.
           </div>
         </form>
@@ -677,9 +678,9 @@ export function ChatWindow({ threadId }: { threadId: string }) {
 
 function EmptyState({ onPick }: { onPick: (text: string) => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-5 pb-5 pt-8">
+    <div className="flex h-full flex-col items-center justify-center px-5 pb-2 pt-8">
       <div className="mb-6 flex flex-col items-center text-center">
-        <TrajectoryMark />
+         <TrajectoryMark />
         <h1 className="mt-5 font-serif text-3xl font-normal italic sm:text-4xl">
           How can I help you tonight?
         </h1>
@@ -688,19 +689,17 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
           I'll do my best.
         </p>
       </div>
-      <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
+       <div className="grid w-full max-w-[600px] grid-cols-1 gap-3 sm:grid-cols-2">
         {SUGGESTIONS.map((s) => {
           const Icon = s.icon;
           return (
             <button
               key={s.title}
               onClick={() => onPick(s.prompt)}
-              className="group rounded-lg border border-border bg-card/45 p-4 text-left transition-[border-color,transform,background-color] duration-200 hover:-translate-y-px hover:border-primary/35 hover:bg-card/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+               className="group rounded-xl border border-border bg-foreground/[0.008] p-4 text-left transition-[border-color,transform,background-color] duration-200 hover:-translate-y-px hover:border-primary/25 hover:bg-foreground/[0.02] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
             >
               <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-primary">
-                  <Icon className="h-3.5 w-3.5" />
-                </span>
+                 <Icon className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">{s.title}</span>
               </div>
               <p className="line-clamp-2 text-xs text-muted-foreground">
@@ -718,14 +717,35 @@ function TrajectoryMark() {
   return (
     <svg
       aria-label="Lumen trajectory"
-      className="aster-trajectory h-20 w-28 text-primary"
-      viewBox="0 0 112 80"
+       className="aster-trajectory h-[76px] w-[120px] text-primary"
+       viewBox="0 0 120 76"
       fill="none"
       role="img"
     >
-      <path className="aster-arrow" d="M32 54C44 47 53 37 59 22M49 28l10-6 2 12" />
-      <path className="aster-horizon" d="M10 62c24-13 68-13 92 0" />
+       <path className="aster-arrow" d="M60 68V10M60 10l-5 7M60 10l5 7" />
+       <path className="aster-horizon" d="M15 68s15-10 45-10 45 10 45 10" />
     </svg>
+  );
+}
+
+const STAR_POINTS = [
+  [4, 13, 1], [9, 72, 1], [15, 31, 1.5], [21, 89, 1], [27, 8, 1],
+  [32, 62, 1], [38, 21, 1], [44, 82, 1.5], [51, 11, 1], [57, 46, 1],
+  [63, 93, 1], [69, 25, 1.5], [75, 67, 1], [82, 15, 1], [88, 79, 1.5],
+  [94, 36, 1], [12, 53, 1], [35, 95, 1], [73, 4, 1], [97, 71, 1],
+] as const;
+
+function StarField() {
+  return (
+    <div className="aster-stars" aria-hidden="true">
+      {STAR_POINTS.map(([left, top, size], index) => (
+        <i
+          key={`${left}-${top}`}
+          className={index % 6 === 0 ? "twinkle" : undefined}
+          style={{ left: `${left}%`, top: `${top}%`, width: size, height: size, animationDelay: `${index * 0.41}s` }}
+        />
+      ))}
+    </div>
   );
 }
 

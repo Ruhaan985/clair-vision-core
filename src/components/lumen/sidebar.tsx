@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Plus, MessageSquare, Trash2, Sparkles, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield, Trophy, KeyRound } from "lucide-react";
+import { Plus, MessageSquare, Trash2, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield, Trophy, KeyRound } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
@@ -9,7 +9,6 @@ import {
   type Thread,
 } from "@/lib/threads";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/lumen-logo.png";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { LANGUAGES, findLanguage, type Language } from "@/lib/languages";
@@ -93,42 +92,34 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     <>
     {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
     {boardOpen && <Leaderboard onClose={() => setBoardOpen(false)} />}
-    <aside className="flex h-full w-72 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      <div className="flex items-center gap-2.5 px-4 pt-5 pb-3">
-        <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 glow-mint">
-          <img
-            src={logo}
-            alt="Lumen"
-            width={28}
-            height={28}
-            className="h-7 w-7"
-          />
-        </div>
+    <aside className="flex h-full w-[272px] flex-col border-r border-sidebar-border bg-sidebar px-5 py-7 text-sidebar-foreground">
+      <div className="mb-7 flex items-center gap-2.5">
+        <AsterMark className="h-[30px] w-[30px]" />
         <div className="flex flex-col leading-none">
-          <span className="text-base font-semibold tracking-tight">Lumen</span>
-          <span className="text-[11px] text-muted-foreground">
+          <span className="font-serif text-[19px] font-normal">Lumen</span>
+          <span className="mt-1 text-[11px] text-foreground/30">
             AI · always on
           </span>
         </div>
       </div>
 
-      <div className="px-3 pb-2">
+      <div>
         <button
           onClick={handleNew}
-          className="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-primary/20 hover:border-primary/50"
+          className="group inline-flex w-full items-center justify-center gap-2 rounded-lg border border-sidebar-border bg-transparent px-3 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-foreground/[0.025] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
-          <Plus className="h-4 w-4 text-primary transition-transform group-hover:rotate-90" />
+          <Plus className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-90" />
           New conversation
         </button>
       </div>
 
-      <div className="px-4 pb-1 pt-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="mb-2 mt-6 px-0.5 text-[11px] font-medium uppercase text-foreground/30">
         Recent
       </div>
-      <nav className="thread-scroll flex-1 overflow-y-auto px-2 pb-3">
+      <nav className="thread-scroll flex-1 overflow-y-auto pb-3">
         {threads.length === 0 ? (
-          <div className="mx-2 mt-2 rounded-lg border border-dashed border-sidebar-border p-4 text-xs text-muted-foreground">
-            No conversations yet. Start one above.
+          <div className="px-0.5 py-1 text-[12.5px] leading-5 text-foreground/30">
+            No conversations yet.<br />Start one above.
           </div>
         ) : (
           <ul className="space-y-0.5">
@@ -138,7 +129,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 <li key={t.id}>
                   <div
                     className={cn(
-                      "group flex items-center gap-2 rounded-lg px-2.5 py-2 transition-colors",
+                       "group flex items-center gap-2 rounded-md px-2 py-2 transition-colors",
                       active
                         ? "bg-sidebar-accent text-sidebar-accent-foreground"
                         : "hover:bg-sidebar-accent/60",
@@ -173,26 +164,27 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         )}
       </nav>
 
-      <div className="border-t border-sidebar-border px-4 py-3 text-[11px] text-muted-foreground">
+      <div className="space-y-3 text-[11px] text-muted-foreground">
         {/* Account */}
         {user ? (
-          <div className="mb-2 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-2 py-1.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary">
+          <div className="rounded-lg border border-sidebar-border/70 p-3">
+            <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-sidebar-border bg-muted text-[10px] font-semibold text-foreground/75">
               {(profile?.display_name || user.email || "?").slice(0, 1).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <div className="truncate text-xs font-medium text-foreground">
                 {profile?.display_name || user.email}
               </div>
-              <div className="mt-1 flex items-center gap-1.5">
+               <div className="mt-1 flex items-center gap-1.5">
                 <RankBadge rank={rank} />
                 <span className="truncate text-[10px] text-muted-foreground">
                   {points.toLocaleString()} pts
                 </span>
               </div>
-              <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">
+               <div className="mt-2 h-0.5 w-full overflow-hidden rounded-full bg-foreground/10">
                 <div
-                  className="h-full rounded-full bg-primary transition-all"
+                   className="h-full rounded-full bg-primary transition-all"
                   style={{ width: `${Math.round(progress.pct * 100)}%` }}
                 />
               </div>
@@ -202,28 +194,30 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   : "Max rank reached"}
               </div>
             </div>
-            <button
+             <button
               onClick={async () => { await signOut(); toast.success("Signed out."); }}
               aria-label="Sign out"
-              className="rounded-md p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+               className="rounded-md p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <LogOut className="h-3.5 w-3.5" />
-            </button>
+             </button>
+            </div>
           </div>
         ) : (
           <Link
             to="/auth"
             onClick={onNavigate}
-            className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/40 bg-primary/15 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-primary/25"
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-sidebar-border px-2.5 py-2 text-xs font-medium text-foreground transition hover:border-primary/30 hover:bg-foreground/[0.025]"
           >
             <LogIn className="h-3.5 w-3.5 text-primary" />
             Sign in / Create account
           </Link>
         )}
 
+        <div className="flex flex-col gap-0.5">
         <button
           onClick={() => setBoardOpen(true)}
-          className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-primary/20"
+          className="inline-flex w-full items-center gap-2 rounded-md px-1.5 py-2 text-[12.5px] text-muted-foreground transition hover:bg-foreground/[0.03] hover:text-foreground"
         >
           <Trophy className="h-3.5 w-3.5 text-primary" />
           Leaderboard
@@ -233,7 +227,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <Link
             to="/reset-password"
             onClick={onNavigate}
-            className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-card/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/50"
+            className="inline-flex w-full items-center gap-2 rounded-md px-1.5 py-2 text-[12.5px] text-muted-foreground transition hover:bg-foreground/[0.03] hover:text-foreground"
           >
             <KeyRound className="h-3.5 w-3.5 text-primary" />
             Change password
@@ -243,7 +237,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         {isAdmin && (
           <button
             onClick={() => setAdminOpen(true)}
-            className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-primary/20"
+            className="inline-flex w-full items-center gap-2 rounded-md px-1.5 py-2 text-[12.5px] text-muted-foreground transition hover:bg-foreground/[0.03] hover:text-foreground"
           >
             <Shield className="h-3.5 w-3.5 text-primary" />
             Admin console
@@ -254,7 +248,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <Popover open={langOpen} onOpenChange={setLangOpen}>
           <PopoverTrigger asChild>
             <button
-              className="mb-2 inline-flex w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-card/60 px-2.5 py-1.5 text-xs text-foreground transition hover:border-primary/50"
+               className="inline-flex w-full items-center justify-between gap-1.5 rounded-md px-1.5 py-2 text-[12.5px] text-muted-foreground transition hover:bg-foreground/[0.03] hover:text-foreground"
               aria-label="Choose language"
             >
               <span className="inline-flex items-center gap-1.5">
@@ -315,16 +309,16 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             </div>
           </PopoverContent>
         </Popover>
+        </div>
 
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="h-3 w-3 text-primary" />
+        <div className="px-1.5 text-[10.5px] text-foreground/30">
           {user ? "History is saved to your account." : "Sign in to save your chat history."}
         </div>
         <a
           href="https://www.mediafire.com/file/2bt47yqw4l9cf2v/app-release.apk/file"
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-primary/20 hover:border-primary/50"
+          className="inline-flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-xs text-muted-foreground transition hover:text-foreground"
         >
           <Smartphone className="h-3.5 w-3.5 text-primary" />
           Download Android App
@@ -333,7 +327,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           href="https://www.mediafire.com/file/e7duepyutt1454c/ios_source.tar.gz/file"
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-primary/20 hover:border-primary/50"
+          className="inline-flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-xs text-muted-foreground transition hover:text-foreground"
         >
           <Apple className="h-3.5 w-3.5 text-primary" />
           Download iOS App
@@ -341,7 +335,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <Link
           to="/terms"
           onClick={onNavigate}
-          className="mt-2 inline-flex items-center gap-1.5 text-muted-foreground transition hover:text-primary"
+          className="inline-flex items-center gap-1.5 px-1.5 text-foreground/30 transition hover:text-foreground"
         >
           <ScrollText className="h-3 w-3" />
           Terms & Conditions
@@ -349,5 +343,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
     </aside>
     </>
+  );
+}
+
+function AsterMark({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 30 30" fill="none" aria-hidden="true">
+      <path d="M15 22V6M15 6l-3 4.5M15 6l3 4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 24s4-3.5 11-3.5S26 24 26 24" stroke="currentColor" strokeOpacity=".5" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
   );
 }
