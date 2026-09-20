@@ -156,7 +156,7 @@ export const assignUserRank = createServerFn({ method: "POST" })
   .inputValidator((data: { userId: string; rank: LumenRank }) => data)
   .handler(async ({ data, context }) => {
     const admin = await assertLumenAdmin(context);
-    const allowed: LumenRank[] = ["bronze", "silver", "gold", "platinum", "diamond", "onyx", "nemesis", "arch_nemesis"];
+    const allowed: LumenRank[] = ["bronze", "silver", "gold", "platinum", "diamond", "onyx", "nemesis", "arch_nemesis", "developer"];
     if (!allowed.includes(data.rank)) throw new Error("Invalid rank");
     const { error } = await admin.from("user_ranks").upsert(
       {
