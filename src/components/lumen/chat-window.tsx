@@ -761,19 +761,69 @@ function LumenGlyph({ className }: { className?: string }) {
 }
 
 const STAR_POINTS = [
+  // Original stars
   [4, 13, 1], [9, 72, 1], [15, 31, 1.5], [21, 89, 1], [27, 8, 1],
   [32, 62, 1], [38, 21, 1], [44, 82, 1.5], [51, 11, 1], [57, 46, 1],
   [63, 93, 1], [69, 25, 1.5], [75, 67, 1], [82, 15, 1], [88, 79, 1.5],
   [94, 36, 1], [12, 53, 1], [35, 95, 1], [73, 4, 1], [97, 71, 1],
+
+  // Additional stars for richer night sky
+  [2, 85, 0.8], [8, 32, 1.2], [18, 58, 0.9], [22, 91, 0.7], [29, 14, 1.1],
+  [36, 77, 0.8], [41, 3, 1.3], [47, 68, 0.9], [53, 24, 1.0], [59, 81, 0.8],
+  [66, 49, 1.2], [71, 12, 0.7], [78, 55, 1.1], [84, 9, 0.9], [91, 41, 1.0],
+  [96, 76, 0.8], [3, 28, 1.0], [11, 65, 0.9], [19, 88, 0.8], [25, 42, 1.2],
+  [31, 79, 0.7], [39, 16, 1.0], [45, 52, 0.9], [50, 87, 1.1], [56, 33, 0.8],
+  [62, 70, 1.0], [68, 26, 0.9], [74, 63, 1.1], [80, 19, 0.8], [86, 57, 1.0],
+  [92, 13, 0.9], [98, 48, 1.2], [5, 82, 0.7], [14, 39, 1.1], [20, 74, 0.8],
+  [28, 11, 1.0], [34, 56, 0.9], [40, 92, 0.8], [48, 29, 1.0], [54, 66, 0.9],
+  [60, 3, 1.2], [65, 45, 0.8], [70, 80, 1.0], [76, 36, 0.9], [81, 72, 0.8],
+  [87, 18, 1.1], [93, 54, 0.9], [99, 90, 0.7], [1, 55, 0.8], [16, 91, 0.7],
+  [23, 17, 1.0], [30, 53, 0.9], [37, 89, 0.8], [42, 25, 1.1], [49, 61, 0.9],
+  [55, 8, 1.0], [61, 44, 0.8], [67, 81, 1.0], [72, 17, 0.9], [79, 53, 0.8],
+  [85, 90, 0.9], [90, 26, 1.0], [95, 62, 0.8], [100, 38, 0.9]
 ] as const;
 
 /** Persistent night-sky backdrop for the whole chat surface: nebula glow, stars, a moon, a distant ringed planet, and the odd shooting star. */
 function NightSky() {
+  const [meteorShowerActive, setMeteorShowerActive] = useState(false);
+  const [nextShowerIn, setNextShowerIn] = useState(0);
+
+  useEffect(() => {
+    // Set up meteor shower timer - showers every 5-10 minutes, lasting 10-30 seconds
+    const shuffleTime = () => {
+      const minutesToNextShower = 5 + Math.random() * 5; // 5-10 minutes
+      const msToNextShower = minutesToNextShower * 60 * 1000;
+      setNextShowerIn(msToNextShower);
+    };
+
+    const startShower = () => {
+      setMeteorShowerActive(true);
+      // Shower lasts 10-30 seconds
+      const showerDuration = 10000 + Math.random() * 20000;
+      setTimeout(() => {
+        setMeteorShowerActive(false);
+        shuffleTime(); // Schedule next shower
+      }, showerDuration);
+    };
+
+    // Initial setup
+    shuffleTime();
+    const timer = setTimeout(startShower, nextShowerIn);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [nextShowerIn]);
+
   return (
     <div className="aster-sky-layer" aria-hidden="true">
+      <div className="aster-aurora" />
       <div className="aster-nebula" />
       <div className="aster-moon" />
-      <div className="aster-planet" />
+      {/* Consistent planets - same positions every time */}
+      <div className="aster-planet aster-planet-1" />
+      <div className="aster-planet aster-planet-2" />
+      <div className="aster-planet aster-planet-3" />
       <div className="aster-stars">
         {STAR_POINTS.map(([left, top, size], index) => (
           <i
@@ -783,8 +833,30 @@ function NightSky() {
           />
         ))}
       </div>
+      {/* Meteor shower - enhanced shooting stars during active showers */}
+      {meteorShowerActive && (
+        <>
+          {[...Array(8)].map((_, i) => (
+            <span
+              key={`meteor-shower-${i}`}
+              className="aster-shooting-star meteor-shower"
+              style={{
+                top: `${20 + Math.random() * 60}%`,
+                left: `${-5 + Math.random() * 10}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                animationDuration: `${6 + Math.random() * 4}s`
+              }}
+            />
+          ))}
+        </>
+      )}
+      {/* Regular shooting stars */}
       <span className="aster-shooting-star aster-shooting-star-1" />
       <span className="aster-shooting-star aster-shooting-star-2" />
+
+      {/* Black holes - gravitational singularities */}
+      <div className="aster-black-hole aster-black-hole-1" />
+      <div className="aster-black-hole aster-black-hole-2" />
     </div>
   );
 }

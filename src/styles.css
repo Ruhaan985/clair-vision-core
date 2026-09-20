@@ -20,8 +20,9 @@
  */
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Inter", "SF Pro Display", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Fraunces", "Playfair Display", "Cormorant Garamond", "ui-serif", "Georgia", serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", "Roboto Mono", menlo, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -130,16 +131,77 @@
   --sidebar-ring: oklch(0.81 0.04 264);
 }
 
+
 @layer base {
   * {
     border-color: var(--color-border);
+    box-sizing: border-box;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  }
+
+  /* Enhanced typography for better readability and aesthetics */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 { font-size: 2.25rem; }
+  h2 { font-size: 1.875rem; }
+  h3 { font-size: 1.5rem; }
+  h4 { font-size: 1.25rem; }
+  h5 { font-size: 1.125rem; }
+  h6 { font-size: 1rem; }
+
+  p {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  /* Enhanced interactive elements */
+  button, [role="button"] {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  button:hover, [role="button"]:hover {
+    transform: translateY(-1px);
+  }
+
+  button:active, [role="button"]:active {
+    transform: translateY(0);
+  }
+
+  /* Enhanced focus rings for better accessibility */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  /* Enhanced transitions for smoother experience */
+  * {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-duration: 0.15s;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
   }
 }
 
@@ -312,7 +374,45 @@
 .chip-active { animation: chip-glow 2.4s ease-in-out infinite; }
 
 /* ---------- Opening splash ---------- */
-.splash { background: radial-gradient(80% 60% at 50% 40%, oklch(0.22 0 0 / 1) 0%, oklch(0.06 0 0 / 1) 70%); }
+.splash {
+  background:
+    radial-gradient(80% 60% at 50% 40%, oklch(0.12 0.02 280 / 0.8) 0%, transparent 70%),
+    radial-gradient(60% 40% at 30% 70%, oklch(0.15 0.03 320 / 0.6) 0%, transparent 80%),
+    radial-gradient(50% 50% at 70% 30%, oklch(0.1 0.015 250 / 0.7) 0%, transparent 80%),
+    radial-gradient(30% 30% at 20% 20%, oklch(0.2 0.03 260 / 0.4) 0%, transparent 80%),
+    radial-gradient(25% 25% at 80% 80%, oklch(0.18 0.025 300 / 0.3) 0%, transparent 85%);
+  background-color: oklch(0.125 0.01 270);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add subtle vignette that pulses */
+.splash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center,
+    transparent 0%,
+    oklch(0.125 0.01 270 / 0) 30%,
+    oklch(0.125 0.01 270 / 0.4) 100%);
+  pointer-events: none;
+  animation: vignette-pulse 6s ease-in-out infinite;
+}
+
+@keyframes vignette-pulse {
+  0%, 100% {
+    background: radial-gradient(ellipse at center,
+      transparent 0%,
+      oklch(0.125 0.01 270 / 0) 30%,
+      oklch(0.125 0.01 270 / 0.4) 100%);
+  }
+  50% {
+    background: radial-gradient(ellipse at center,
+      transparent 0%,
+      oklch(0.125 0.01 270 / 0) 30%,
+      oklch(0.125 0.01 270 / 0.5) 100%);
+  }
+}
 .splash-grid {
   position: absolute; inset: 0;
   background-image:
@@ -324,36 +424,123 @@
 }
 @keyframes grid-pan {
   from { background-position: 0 0, 0 0; }
-  to   { background-position: 48px 48px, 48px 48px; }
+  to   { background-position: 96px 96px, 96px 96px; }
+}
+
+/* Make grid animation slower and more subtle */
+.splash-grid {
+  animation: grid-pan 28s linear infinite;
+  opacity: 0.3;
 }
 .splash-orb {
-  position: absolute; border-radius: 9999px; filter: blur(60px); opacity: 0; mix-blend-mode: screen;
-  animation: orb-in 1.2s ease-out forwards, orb-drift 9s ease-in-out infinite 1.2s;
+  position: absolute; border-radius: 9999px; filter: blur(80px); opacity: 0; mix-blend-mode: screen;
+  animation: orb-in 2.2s ease-out forwards, orb-drift 25s ease-in-out infinite;
 }
-.splash-orb-a { width: 380px; height: 380px; left: 18%;  top: 22%; background: oklch(0.92 0 0 / 0.32); }
-.splash-orb-b { width: 320px; height: 320px; right: 16%; top: 30%; background: oklch(0.7 0 0 / 0.32); animation-delay: 0.15s, 1.35s; }
-.splash-orb-c { width: 420px; height: 420px; left: 38%;  bottom: 6%; background: oklch(0.55 0 0 / 0.3); animation-delay: 0.3s, 1.5s; }
-@keyframes orb-in   { to { opacity: 1; } }
-@keyframes orb-drift { 0%,100% { transform: translate(0,0); } 50% { transform: translate(40px,-30px); } }
+.splash-orb-a {
+  width: 450px; height: 450px; left: 15%; top: 20%;
+  background: radial-gradient(circle at 30% 30%, oklch(0.35 0.05 280 / 0.5), transparent 70%);
+  animation-delay: 0s, 3s;
+}
+.splash-orb-b {
+  width: 380px; height: 380px; right: 18%; top: 32%;
+  background: radial-gradient(circle at 70% 30%, oklch(0.28 0.04 320 / 0.4), transparent 70%);
+  animation-delay: 0.5s, 4s;
+}
+.splash-orb-c {
+  width: 500px; height: 500px; left: 35%; bottom: 8%;
+  background: radial-gradient(circle at 40% 50%, oklch(0.22 0.03 250 / 0.35), transparent 70%);
+  animation-delay: 1s, 5s;
+}
+@keyframes orb-in   {
+  0% { opacity: 0; transform: scale(0.1) rotate(0deg); }
+  20% { opacity: 0.3; transform: scale(0.8) rotate(5deg); }
+  40% { opacity: 0.6; transform: scale(1.0) rotate(-3deg); }
+  60% { opacity: 0.8; transform: scale(1.05) rotate(2deg); }
+  80% { opacity: 0.95; transform: scale(1.02) rotate(-1deg); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes orb-drift {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(40px, -30px) rotate(12deg);
+  }
+  50% {
+    transform: translate(-20px, 40px) rotate(-8deg);
+  }
+  75% {
+    transform: translate(30px, -15px) rotate(6deg);
+  }
+}
+@keyframes orb-drift {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(30px, -20px) rotate(8deg);
+  }
+  50% {
+    transform: translate(-15px, 35px) rotate(-5deg);
+  }
+  75% {
+    transform: translate(25px, -10px) rotate(3deg);
+  }
+}
 
 .splash-logo {
   position: relative; display: inline-flex; align-items: center; justify-content: center;
   height: 6rem; width: 6rem; border-radius: 1.5rem;
   background: linear-gradient(160deg, oklch(0.24 0 0), oklch(0.06 0 0));
   border: 1px solid oklch(1 0 0 / 0.12);
-  opacity: 0; transform: scale(0.6) rotate(-12deg); filter: blur(8px);
-  transition: all 0.9s cubic-bezier(0.2, 0.9, 0.2, 1.2);
-  box-shadow: 0 0 50px -8px oklch(1 0 0 / 0.4), inset 0 1px 0 oklch(1 0 0 / 0.08);
+  opacity: 0; transform: scale(0.4) rotate(-15deg); filter: blur(12px);
+  transition: all 1.2s cubic-bezier(0.2, 0.9, 0.2, 1.2);
+  box-shadow: 0 0 60px -10px oklch(1 0 0 / 0.5), inset 0 1px 0 oklch(1 0 0 / 0.1);
 }
-.splash-logo.is-in { opacity: 1; transform: scale(1) rotate(0); filter: blur(0); }
+.splash-logo.is-in {
+  opacity: 1;
+  transform: scale(1) rotate(0);
+  filter: blur(0);
+  animation: logo-pulse 3s ease-in-out infinite 1.5s;
+}
+@keyframes logo-pulse {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.08) rotate(3deg); }
+}
+
+/* Add a subtle glow pulse to the logo */
+.splash-logo.is-in {
+  box-shadow:
+    0 0 60px -10px oklch(1 0 0 / 0.5),
+    inset 0 1px 0 oklch(1 0 0 / 0.1),
+    0 0 0 2px oklch(0.81 0.04 264 / 0.3);
+  animation: logo-glow-pulse 4s ease-in-out infinite 1.5s;
+}
+
+@keyframes logo-glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 60px -10px oklch(1 0 0 / 0.5),
+      inset 0 1px 0 oklch(1 0 0 / 0.1),
+      0 0 0 2px oklch(0.81 0.04 264 / 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 80px -10px oklch(1 0 0 / 0.7),
+      inset 0 1px 0 oklch(1 0 0 / 0.15),
+      0 0 0 4px oklch(0.81 0.04 264 / 0.5);
+  }
+}
 .splash-ring {
-  position: absolute; inset: -6px; border: 1px solid oklch(1 0 0 / 0.4);
-  border-radius: 1.75rem; animation: ring-pulse 1.8s ease-out infinite;
+  position: absolute; inset: -6px; border: 1px solid oklch(1 0 0 / 0.5);
+  border-radius: 1.75rem; animation: ring-pulse 2.2s ease-out infinite;
 }
-.splash-ring-2 { inset: -16px; animation-delay: 0.4s; opacity: 0.6; }
+.splash-ring-2 { inset: -18px; animation-delay: 0.6s; opacity: 0.7; }
 @keyframes ring-pulse {
-  0%   { transform: scale(0.85); opacity: 0.9; }
-  100% { transform: scale(1.35); opacity: 0; }
+  0%   { transform: scale(0.8); opacity: 0.8; }
+  50%  { transform: scale(1.2); opacity: 0.4; }
+  100% { transform: scale(1.6); opacity: 0; }
 }
 
 /* Pointer-reactive tilt for the icon, isolated from the entrance transition above. */
@@ -375,15 +562,293 @@
 
 /* Star field */
 .splash-stars { position: absolute; inset: 0; overflow: hidden; }
-.splash-stars i {
-  position: absolute; width: 2px; height: 2px; border-radius: 9999px;
-  background: oklch(0.96 0 0 / 0.9);
-  box-shadow: 0 0 4px 1px oklch(0.96 0 0 / 0.45);
-  opacity: 0; animation: star-twinkle 3.4s ease-in-out infinite;
+.splash-star {
+  position: absolute; border-radius: 9999px;
+  opacity: 0;
+  animation: star-twinkle ease-in-out infinite;
+}
+.splash-star.twinkle {
+  animation-name: star-twinkle-bright;
 }
 @keyframes star-twinkle {
   0%, 100% { opacity: 0; transform: scale(0.5); }
   50%      { opacity: 1; transform: scale(1); }
+}
+@keyframes star-twinkle-bright {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%      { opacity: 1; transform: scale(1.2); }
+}
+
+/* Shooting stars */
+.splash-shooting-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 9999px;
+  background: oklch(1 0 0 / 0.9);
+  box-shadow: 0 0 8px 2px oklch(1 0 0 / 0.7);
+  opacity: 0;
+}
+
+/* Cinematic shooting stars with longer trails */
+.splash-shooting-star.cinematic {
+  width: 3px;
+  height: 3px;
+  background: oklch(0.95 0.05 280 / 0.9);
+  box-shadow: 0 0 12px 3px oklch(0.95 0.05 280 / 0.7);
+}
+
+.splash-shooting-star.cinematic::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 120px;
+  height: 1px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, oklch(0.95 0.05 280 / 0.8), transparent);
+  animation: shooting-star-shimmer 1s ease-out infinite;
+}
+
+@keyframes shooting-star-shimmer {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+/* Star variations */
+.splash-star.deep {
+  animation-name: star-twinkle-deep;
+}
+
+.splash-star.cinematic {
+  animation-name: star-twinkle-cinematic;
+}
+
+.splash-star.ultra-bright {
+  animation-name: star-twinkle-ultra;
+  animation-duration: 2s !important;
+}
+
+@keyframes star-twinkle-deep {
+  0%, 100% { opacity: 0; transform: scale(0.3); }
+  50%      { opacity: 0.4; transform: scale(0.8); }
+}
+
+@keyframes star-twinkle-cinematic {
+  0%, 100% { opacity: 0.2; transform: scale(0.6); }
+  50%      { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes star-twinkle-ultra {
+  0%, 100% { opacity: 0.5; transform: scale(0.8); }
+  50%      { opacity: 1; transform: scale(1.2); }
+}
+
+/* Nebula clouds */
+.splash-nebula {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: 0;
+  animation: nebula-fade-in ease-in-out forwards;
+}
+
+@keyframes nebula-fade-in {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 0.3; transform: scale(1); }
+}
+
+@keyframes nebula-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(20px, 15px) rotate(5deg); }
+  66% { transform: translate(-15px, -10px) rotate(-3deg); }
+}
+
+/* Cinematic lens flare effect */
+.splash-lens-flare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+/* Show lens flare when active */
+.phase-2 .splash-lens-flare,
+.phase-3 .splash-lens-flare,
+.phase-4 .splash-lens-flare,
+.phase-5 .splash-lens-flare,
+.is-leaving .splash-lens-flare {
+  opacity: 0.3;
+}
+
+.splash-lens-flare::before,
+.splash-lens-flare::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.8), transparent);
+  transform: translate(-50%, -50%) rotate(45deg);
+  animation: lens-flare-h 3s ease-in-out infinite;
+}
+
+.splash-lens-flare::after {
+  width: 2px;
+  height: 200px;
+  background: linear-gradient(0deg, transparent, oklch(1 0 0 / 0.8), transparent);
+  transform: translate(-50%, -50%) rotate(0deg);
+  animation: lens-flare-v 3s ease-in-out infinite;
+}
+
+@keyframes lens-flare-h {
+  0%, 100% { opacity: 0; }
+  40% { opacity: 0.1; }
+  50% { opacity: 0.3; }
+  60% { opacity: 0.1; }
+}
+
+@keyframes lens-flare-v {
+  0%, 100% { opacity: 0; }
+  40% { opacity: 0.1; }
+  50% { opacity: 0.3; }
+  60% { opacity: 0.1; }
+}
+
+/* Light leak effect */
+.splash-light-leak {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+}
+
+/* Show light leak when active */
+.phase-3 .splash-light-leak,
+.phase-4 .splash-light-leak,
+.phase-5 .splash-light-leak,
+.is-leaving .splash-light-leak {
+  opacity: 0.2;
+}
+
+.splash-light-leak::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(ellipse at center,
+    oklch(0.9 0.03 320 / 0.1) 0%,
+    oklch(0.9 0.02 280 / 0.05) 70%,
+    transparent 80%);
+  transform: rotate(15deg);
+  animation: light-leak-drift 8s ease-in-out infinite;
+}
+
+@keyframes light-leak-drift {
+  0%, 100% { transform: translate(0, 0) rotate(15deg); }
+  50% { transform: translate(10px, -10px) rotate(20deg); }
+}
+
+/* Energy pulse effect */
+.splash-energy-pulse {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+/* Show energy pulse when active */
+.phase-4 .splash-energy-pulse,
+.phase-5 .splash-energy-pulse,
+.is-leaving .splash-energy-pulse {
+  opacity: 0.4;
+}
+
+.splash-energy-pulse::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: oklch(0.9 0.04 260 / 0.3);
+  box-shadow: 0 0 50px 20px oklch(0.9 0.04 260 / 0.2);
+  transform: translate(-50%, -50%);
+  animation: energy-pulse 4s ease-out infinite;
+}
+
+@keyframes energy-pulse {
+  0% {
+    width: 0px;
+    height: 0px;
+    opacity: 0;
+  }
+  30% {
+    width: 100px;
+    height: 100px;
+    opacity: 0.4;
+  }
+  100% {
+    width: 200px;
+    height: 200px;
+    opacity: 0;
+  }
+}
+
+/* Enhanced title animation with cinema scope feel */
+.splash-title {
+  color: var(--color-foreground);
+  display: inline-flex;
+  gap: 0.05em;
+  perspective: 1000px;
+}
+
+.splash-title span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(30px) rotateX(60deg) rotateY(15deg) scale(0.8);
+  transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.2, 0.9, 0.2, 1.2);
+  background: linear-gradient(180deg, oklch(0.98 0 0), oklch(0.64 0 0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 15px oklch(0.95 0.02 265 / 0.7),
+               0 0 10px oklch(0.9 0.03 280 / 0.5);
+  letter-spacing: 0.08em;
+}
+
+.splash-title.is-in span {
+  opacity: 1;
+  transform: translateY(0) rotateX(0) rotateY(0) scale(1);
+}
+
+.splash-title.is-in span:nth-child(1) { transition-delay: 0.08s; }
+.splash-title.is-in span:nth-child(2) { transition-delay: 0.18s; }
+.splash-title.is-in span:nth-child(3) { transition-delay: 0.28s; }
+.splash-title.is-in span:nth-child(4) { transition-delay: 0.38s; }
+.splash-title.is-in span:nth-child(5) { transition-delay: 0.48s; }
+.splash-shooting-star::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 80px;
+  height: 1px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.6));
+}
+@keyframes splash-shoot {
+  0%   { opacity: 0; transform: translate(0, 0); }
+  10%  { opacity: 1; }
+  80%  { opacity: 1; transform: translate(120vw, 40vh); }
+  90%  { opacity: 0; transform: translate(130vw, 45vh); }
+  100% { opacity: 0; transform: translate(130vw, 45vh); }
 }
 
 /* Skip button */
@@ -391,23 +856,34 @@
   position: absolute; top: 1.5rem; right: 1.5rem; z-index: 20;
   padding: 0.4rem 0.95rem; border-radius: 9999px; font-size: 0.75rem; letter-spacing: 0.01em;
   color: oklch(1 0 0 / 0.6); background: oklch(1 0 0 / 0.06); border: 1px solid oklch(1 0 0 / 0.12);
-  backdrop-filter: blur(6px); opacity: 0; animation: splash-skip-in 0.6s ease 1.3s forwards;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  backdrop-filter: blur(6px); opacity: 0; animation: splash-skip-in 0.8s ease 2.5s forwards;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 0 15px 5px oklch(0 0 0 / 0.2);
 }
-.splash-skip:hover { background: oklch(1 0 0 / 0.12); color: oklch(1 0 0 / 0.92); border-color: oklch(1 0 0 / 0.24); }
+.splash-skip:hover {
+  background: oklch(1 0 0 / 0.12);
+  color: oklch(1 0 0 / 0.92);
+  border-color: oklch(1 0 0 / 0.24);
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px 8px oklch(0 0 0 / 0.3);
+}
 .splash-skip:active { transform: scale(0.96); }
-@keyframes splash-skip-in { to { opacity: 1; } }
+@keyframes splash-skip-in {
+  0% { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* Boot-sequence status line */
-.splash-modules { margin-top: 0.85rem; height: 1rem; overflow: hidden; }
+.splash-modules { margin-top: 1rem; height: 1.2rem; overflow: hidden; display: flex; flex-direction: column; gap: 0.2rem; }
 .splash-module-line {
-  display: block; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
-  color: oklch(1 0 0 / 0.38); animation: splash-module-in 0.4s ease both;
+  display: block; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: oklch(1 0 0 / 0.35); animation: splash-module-in 0.6s ease forwards;
+  opacity: 0;
 }
-.splash-module-line.is-ready { color: oklch(0.97 0 0 / 0.9); }
+.splash-module-line.is-ready { color: oklch(0.97 0 0 / 0.95); }
 @keyframes splash-module-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Fade the whole splash out just before navigating away */
@@ -417,50 +893,92 @@
 @media (prefers-reduced-motion: reduce) {
   .splash-grid,
   .splash-orb,
-  .splash-stars i,
+  .splash-star,
+  .splash-shooting-star,
   .splash-ring,
   .splash-bar span { animation: none; }
   .splash-orb { opacity: 1; }
-  .splash-stars i { opacity: 0.5; }
+  .splash-star { opacity: 0.5; }
+  .splash-shooting-star { opacity: 0; }
   .splash-tilt { transition: none; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
 .splash-title { color: var(--color-foreground); display: inline-flex; gap: 0.05em; }
 .splash-title span {
-  display: inline-block; opacity: 0; transform: translateY(14px) rotateX(40deg);
-  transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.9, 0.2, 1.2);
+  display: inline-block; opacity: 0; transform: translateY(20px) rotateX(45deg) scale(0.9);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.9, 0.2, 1.2);
   background: linear-gradient(180deg, oklch(0.98 0 0), oklch(0.64 0 0));
   -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 8px oklch(0.95 0.02 265 / 0.5);
 }
-.splash-title.is-in span { opacity: 1; transform: translateY(0) rotateX(0); }
-.splash-title.is-in span:nth-child(1) { transition-delay: 0.00s; }
-.splash-title.is-in span:nth-child(2) { transition-delay: 0.06s; }
-.splash-title.is-in span:nth-child(3) { transition-delay: 0.12s; }
-.splash-title.is-in span:nth-child(4) { transition-delay: 0.18s; }
-.splash-title.is-in span:nth-child(5) { transition-delay: 0.24s; }
+.splash-title.is-in span { opacity: 1; transform: translateY(0) rotateX(0) scale(1); }
+.splash-title.is-in span:nth-child(1) { transition-delay: 0.05s; }
+.splash-title.is-in span:nth-child(2) { transition-delay: 0.15s; }
+.splash-title.is-in span:nth-child(3) { transition-delay: 0.25s; }
+.splash-title.is-in span:nth-child(4) { transition-delay: 0.35s; }
+.splash-title.is-in span:nth-child(5) { transition-delay: 0.45s; }
 
 .splash-tagline {
-  opacity: 0; transform: translateY(8px); transition: all 0.6s ease; letter-spacing: 0.04em;
+  opacity: 0; transform: translateY(12px) scale(0.95); transition: all 0.8s ease; letter-spacing: 0.06em;
   color: oklch(1 0 0 / 0.55);
+  text-shadow: 0 0 4px oklch(0.95 0.02 265 / 0.3);
 }
-.splash-tagline.is-in { opacity: 1; transform: translateY(0); }
-.splash-credit { opacity: 0; transform: translateY(6px); transition: all 0.6s ease; color: oklch(1 0 0 / 0.25); }
-.splash-credit.is-in { opacity: 1; transform: translateY(0); }
+.splash-tagline.is-in { opacity: 1; transform: translateY(0) scale(1); }
+.splash-credit { opacity: 0; transform: translateY(10px) scale(0.9); transition: all 0.8s ease; color: oklch(1 0 0 / 0.25); }
+.splash-credit.is-in { opacity: 1; transform: translateY(0) scale(1); }
 
 .splash-bar {
-  position: relative; height: 2px; width: 160px; border-radius: 2px;
-  background: oklch(1 0 0 / 0.08); overflow: hidden; opacity: 0;
-  transition: opacity 0.4s ease;
+  position: relative; height: 3px; width: 200px; border-radius: 3px;
+  background: oklch(1 0 0 / 0.1); overflow: hidden; opacity: 0;
+  transition: opacity 0.6s ease;
 }
 .splash-bar.is-in { opacity: 1; }
 .splash-bar span {
-  position: absolute; inset: 0; width: 40%; border-radius: 2px;
+  position: absolute; inset: 0; width: 50%; border-radius: 3px;
   background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
-  animation: splash-bar 1.1s ease-in-out infinite;
+  animation: splash-bar 2s ease-in-out infinite;
+  box-shadow: 0 0 8px 2px oklch(0.81 0.04 264 / 0.5);
 }
 @keyframes splash-bar {
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(300%); }
+}
+
+/* Enhanced splash bar with cinematic pulse */
+.splash-bar.is-in span {
+  background: linear-gradient(90deg,
+    transparent,
+    oklch(0.81 0.04 264 / 0.6),
+    oklch(0.81 0.04 264 / 0.8),
+    oklch(0.81 0.04 264 / 0.6),
+    transparent);
+  background-size: 200% 100%;
+  animation: splash-bar-enhance 2s ease-in-out infinite;
+}
+
+@keyframes splash-bar-enhance {
+  0%, 100% { background-position: -100% 0; }
+  50% { background-position: 100% 0; }
+}
+
+/* Enhanced boot sequence text */
+.splash-module-line {
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 8px oklch(0.95 0.02 265 / 0.3);
+}
+
+.splash-module-line.is-ready {
+  color: oklch(0.97 0 0 / 0.95);
+  text-shadow: 0 0 12px oklch(0.97 0 0 / 0.7),
+               0 0 8px oklch(0.8 0.1 260 / 0.5);
+  animation: module-ready-pulse 2s ease-in-out infinite;
+}
+
+@keyframes module-ready-pulse {
+  0%, 100% { opacity: 0.95; }
+  50% { opacity: 1; }
 }
 
 /* ---------- Chat surface night sky ---------- */
@@ -468,12 +986,205 @@
 .aster-sky-layer { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
 html.light .aster-sky-layer { opacity: 0.22; }
 
+/* Enhanced Aurora borealis effect - more sophisticated and visible */
+.aster-aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Enhanced base visibility with richer colors */
+  opacity: 0.45;
+  background-image:
+    radial-gradient(ellipse at 25% 35%, oklch(0.35 0.18 140 / 0.25) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 25%, oklch(0.3 0.12 280 / 0.2) 0%, transparent 55%),
+    radial-gradient(ellipse at 45% 75%, oklch(0.4 0.15 160 / 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse at 55% 15%, oklch(0.25 0.1 260 / 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 65% 60%, oklch(0.2 0.08 300 / 0.15) 0%, transparent 60%);
+  background-size: 500% 500%;
+  /* More complex, natural animations */
+  animation:
+    aurora-drift 60s ease-in-out infinite,
+    aurora-pulse 10s ease-in-out infinite,
+    aurora-flow 40s ease-in-out infinite;
+}
+
+/* Enhanced aurora animations for more natural movement */
+@keyframes aurora-drift {
+  0%, 100% {
+    background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+  }
+  25% {
+    background-position: 15% 5%, 5% 15%, 25% 5%, 5% 25%, 10% 10%;
+  }
+  50% {
+    background-position: 30% 10%, 10% 30%, 20% 20%, 30% 20%, 20% 30%;
+  }
+  75% {
+    background-position: 45% 20%, 20% 45%, 15% 35%, 35% 15%, 30% 10%;
+  }
+}
+
+@keyframes aurora-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.55; }
+}
+
+@keyframes aurora-flow {
+  0%, 100% {
+    background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+  }
+  33% {
+    background-position: 10% 10%, 20% 5%, 5% 20%, 15% 25%, 25% 15%;
+  }
+  66% {
+    background-position: 5% 20%, 15% 10%, 25% 15%, 10% 25%, 20% 20%;
+  }
+}
+
+/* Dark theme - rich, visible aurora */
+.dark .aster-aurora {
+  opacity: 0.5;
+}
+
+/* Light theme - visible but not overpowering */
+html.light .aster-aurora {
+  opacity: 0.3;
+}
+
+/* Apply all animations together */
+.dark .aster-aurora,
+html.light .aster-aurora {
+  animation:
+    aurora-drift 60s ease-in-out infinite,
+    aurora-pulse 10s ease-in-out infinite,
+    aurora-flow 40s ease-in-out infinite;
+}
+
+/* Dark theme - rich, visible aurora */
+.dark .aster-aurora {
+  opacity: 0.45;
+}
+
+/* Light theme - visible but not overpowering */
+html.light .aster-aurora {
+  opacity: 0.25;
+}
+
+/* Consistent, gentle drifting animation */
+@keyframes aurora-drift {
+  0%, 100% {
+    background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+  }
+  33% {
+    background-position: 20% 10%, 10% 20%, 30% 10%, 10% 30%;
+  }
+  66% {
+    background-position: 40% 20%, 20% 40%, 10% 30%, 30% 10%;
+  }
+}
+
+/* Subtle pulsation for natural variation */
+@keyframes aurora-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.5; }
+}
+
+/* Occasional natural intensifications - less frequent, more subtle */
+@keyframes aurora-brighten {
+  0%, 95%, 100% { opacity: 0.45; }
+  97% { opacity: 0.55; }
+}
+
+/* Apply all animations together */
+.dark .aster-aurora,
+html.light .aster-aurora {
+  animation:
+    aurora-drift 50s ease-in-out infinite,
+    aurora-pulse 8s ease-in-out infinite,
+    aurora-brighten 25s ease-in-out infinite;
+}
+
+/* Enhanced nebula with more depth and color variation */
 .aster-nebula {
   position: absolute; inset: 0;
   background:
-    radial-gradient(50% 40% at 15% 8%, oklch(0.4 0.1 270 / 0.35), transparent 70%),
-    radial-gradient(45% 35% at 88% 12%, oklch(0.35 0.09 230 / 0.3), transparent 70%),
-    radial-gradient(60% 50% at 50% 105%, oklch(0.2 0 0 / 0.22), transparent 70%);
+    radial-gradient(60% 50% at 20% 15%, oklch(0.45 0.12 280 / 0.4) 0%, transparent 60%),
+    radial-gradient(50% 40% at 80% 25%, oklch(0.35 0.1 200 / 0.35) 0%, transparent 60%),
+    radial-gradient(40% 30% at 30% 80%, oklch(0.4 0.08 300 / 0.3) 0%, transparent 65%),
+    radial-gradient(35% 35% at 70% 60%, oklch(0.3 0.12 260 / 0.25) 0%, transparent 70%);
+  animation: nebula-drift 80s ease-in-out infinite;
+}
+
+/* Enhanced nebula drift for more cosmic movement */
+@keyframes nebula-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(10px, 5px) rotate(2deg); }
+  50% { transform: translate(5px, -10px) rotate(-1deg); }
+  75% { transform: translate(-5px, 15px) rotate(1deg); }
+}
+
+/* Enhanced stars with more variety and twinkling */
+.aster-stars i {
+  position: absolute; border-radius: 9999px;
+  background: oklch(0.95 0.02 270 / 0.75);
+  opacity: 0.4; animation: aster-star-fade 6s ease-in-out infinite;
+}
+.aster-stars i.twinkle { animation: aster-star-twinkle 3s ease-in-out infinite; }
+.aster-stars i.super-twinkle { animation: aster-star-twinkle 1.5s ease-in-out infinite; }
+@keyframes aster-star-fade { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.65; } }
+@keyframes aster-star-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  50%      { opacity: 1; transform: scale(1.3); }
+}
+
+/* Enhanced shooting stars with better trails */
+.aster-shooting-star {
+  position: absolute; top: 18%; left: -6%; width: 2px; height: 2px; border-radius: 9999px;
+  background: oklch(1 0 0 / 0.9); box-shadow: 0 0 8px 2px oklch(1 0 0 / 0.7);
+  opacity: 0; animation: aster-shoot 9s linear infinite;
+}
+.aster-shooting-star::before {
+  content: ""; position: absolute; top: 50%; right: 0; width: 90px; height: 1px; transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.7));
+}
+.aster-shooting-star-1 { top: 20%; animation-delay: 2.5s; }
+.aster-shooting-star-2 { top: 58%; animation-delay: 8s; animation-duration: 12s; }
+
+/* Enhanced aurora animations */
+@keyframes aurora-flow {
+  0%, 100% {
+    background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+  }
+  33% {
+    background-position: 100% 0%, 0% 100%, 100% 0%, 0% 100%;
+  }
+  66% {
+    background-position: 0% 100%, 100% 0%, 0% 100%, 100% 0%;
+  }
+}
+
+@keyframes aurora-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.45; }
+}
+
+/* Pulse the aurora opacity to simulate natural brightness variations */
+.aster-aurora {
+  animation: aurora-flow 40s ease-in-out infinite, aurora-pulse 12s ease-in-out infinite;
+}
+
+/* Make aurora occasionally brighter like real auroras */
+@keyframes aurora-brighten {
+  0%, 90%, 100% { opacity: 0.35; }
+  92% { opacity: 0.55; }
+  95% { opacity: 0.45; }
+  97% { opacity: 0.5; }
+}
+
+/* Apply brightening effect occasionally */
+.dark .aster-aurora {
+  animation: aurora-flow 40s ease-in-out infinite,
+             aurora-pulse 12s ease-in-out infinite,
+             aurora-brighten 25s ease-in-out infinite;
 }
 
 .aster-moon {
@@ -482,6 +1193,22 @@ html.light .aster-sky-layer { opacity: 0.22; }
   box-shadow: 0 0 40px 6px oklch(0.9 0.05 95 / 0.3), inset -10px -6px 14px oklch(0.5 0.03 95 / 0.35);
   opacity: 0.5; animation: aster-drift-slow 18s ease-in-out infinite;
 }
+
+/* Consistent Planets - same every time */
+.aster-planet-2 {
+  position: absolute; top: 25%; right: 20%; width: 2.8rem; height: 2.8rem; border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, oklch(0.3 0.15 320), oklch(0.2 0.1 320) 70%);
+  box-shadow: 0 0 20px 4px oklch(0.3 0.15 320 / 0.4), inset -3px -2px 6px oklch(0.2 0.1 320 / 0.3);
+  opacity: 0.5; animation: aster-drift-slow 28s ease-in-out infinite reverse;
+}
+.aster-planet-3 {
+  position: absolute; bottom: 10%; left: 60%; width: 3.2rem; height: 3.2rem; border-radius: 9999px;
+  background: radial-gradient(circle at 40% 35%, oklch(0.2 0.2 100), oklch(0.15 0.15 120) 65%);
+  box-shadow: 0 0 22px 4px oklch(0.2 0.2 100 / 0.35), inset -2px -2px 5px oklch(0.15 0.15 120 / 0.3);
+  opacity: 0.45; animation: aster-drift-slow 30s ease-in-out infinite;
+}
+
+/* Keep original .aster-planet for backward compatibility */
 .aster-planet {
   position: absolute; bottom: 14%; left: 7%; width: 2.75rem; height: 2.75rem; border-radius: 9999px;
   background: radial-gradient(circle at 35% 30%, oklch(0.65 0 0), oklch(0.3 0 0) 70%);
@@ -491,6 +1218,91 @@ html.light .aster-sky-layer { opacity: 0.22; }
 .aster-planet::after {
   content: ""; position: absolute; inset: -35% -65%; border: 2px solid oklch(0.75 0 0 / 0.45);
   border-radius: 50%; transform: rotate(-18deg) scaleY(0.32);
+}
+
+/* Additional consistent planets */
+.aster-planet-5 {
+  position: absolute; bottom: 30%; right: 10%; width: 3.8rem; height: 3.8rem; border-radius: 9999px;
+  background: radial-gradient(circle at 40% 35%, oklch(0.3 0.25 100), oklch(0.2 0.2 120) 65%, oklch(0.1 0.15 140) 85%);
+  box-shadow: 0 0 28px 5px oklch(0.3 0.25 100 / 0.35), inset -3px -2px 8px oklch(0.2 0.2 120 / 0.3);
+  opacity: 0.6; animation: aster-drift-slow 32s ease-in-out infinite reverse;
+}
+.aster-planet-6 {
+  position: absolute; top: 40%; left: 70%; width: 3.3rem; height: 3.3rem; border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, oklch(0.5 0.1 260), oklch(0.35 0.08 260) 70%);
+  box-shadow: 0 0 25px 4px oklch(0.5 0.1 260 / 0.3), inset -2px -2px 6px oklch(0.35 0.08 260 / 0.25);
+  opacity: 0.5; animation: aster-drift-slow 29s ease-in-out infinite;
+}
+
+/* Black holes - gravitational singularities */
+.aster-black-hole {
+  position: absolute; border-radius: 9999px;
+  background: radial-gradient(circle at center, oklch(0 0 0 / 0.95) 0%, oklch(0 0 0 / 0.99) 70%, oklch(0 0 0 / 1) 100%);
+  box-shadow:
+    0 0 20px 5px oklch(0.2 0.05 260 / 0.3),
+    0 0 40px 10px oklch(0.3 0.1 280 / 0.2),
+    inset 0 0 15px 3px oklch(0.1 0.02 250 / 0.4);
+}
+.aster-black-hole-1 {
+  position: absolute; top: 35%; left: 25%; width: 2.5rem; height: 2.5rem;
+  opacity: 0.8; animation: black-hole-pulse 4s ease-in-out infinite;
+}
+.aster-black-hole-2 {
+  position: absolute; bottom: 40%; right: 30%; width: 2.0rem; height: 2.0rem;
+  opacity: 0.7; animation: black-hole-pulse 5s ease-in-out infinite reverse;
+}
+.aster-black-hole::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: radial-gradient(ellipse at center,
+    oklch(0.9 0.03 280 / 0.1) 0%,
+    transparent 70%);
+  filter: blur(8px);
+  animation: black-hole-spin 20s linear infinite;
+}
+.aster-black-hole::after {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    oklch(0.2 0.04 260 / 0.2) 25%,
+    transparent 50%,
+    oklch(0.2 0.04 280 / 0.2) 75%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: black-hole-distort 15s ease-in-out infinite;
+}
+
+/* Enhanced star field - more varied and numerous */
+.aster-stars i {
+  position: absolute; border-radius: 9999px;
+  background: oklch(0.95 0.02 270 / 0.75);
+  opacity: 0.4; animation: aster-star-fade 6s ease-in-out infinite;
+}
+.aster-stars i.twinkle { animation: aster-star-twinkle 3s ease-in-out infinite; }
+@keyframes aster-star-fade { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.65; } }
+@keyframes aster-star-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  50%      { opacity: 1; transform: scale(1.3); }
+}
+
+/* Black hole animations */
+@keyframes black-hole-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.05); }
+}
+@keyframes black-hole-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes black-hole-distort {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg); }
 }
 @keyframes aster-drift-slow {
   0%, 100% { transform: translate(0, 0); }
@@ -519,12 +1331,70 @@ html.light .aster-sky-layer { opacity: 0.22; }
 }
 .aster-shooting-star-1 { top: 20%; animation-delay: 2.5s; }
 .aster-shooting-star-2 { top: 58%; animation-delay: 8s; animation-duration: 12s; }
-@keyframes aster-shoot {
+
+/* Enhanced meteor shower shooting stars - more spectacular */
+.aster-shooting-star.meteor-shower {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: oklch(0.95 0.15 100 / 0.95);
+  box-shadow:
+    0 0 20px 6px oklch(0.95 0.15 100 / 0.8),
+    0 0 30px 10px oklch(0.9 0.2 100 / 0.5);
+  opacity: 0;
+}
+.aster-shooting-star.meteor-shower::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 150px;
+  height: 2px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, oklch(0.95 0.15 100 / 0.9), transparent);
+  animation: shooting-star-shimmer 0.6s ease-out infinite;
+}
+
+/* Enhanced shooting star animation for meteors - faster and more dramatic */
+.aster-shooting-star.meteor-shower {
+  animation: aster-shoot-enhance 6s linear infinite;
+}
+
+/* Regular shooting stars with improved appearance */
+.aster-shooting-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 9999px;
+  background: oklch(1 0 0 / 0.9);
+  box-shadow: 0 0 8px 2px oklch(1 0 0 / 0.7);
+  opacity: 0;
+}
+.aster-shooting-star::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 80px;
+  height: 1px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.6));
+}
+.aster-shooting-star-1 { top: 20%; animation-delay: 2.5s; }
+.aster-shooting-star-2 { top: 58%; animation-delay: 8s; animation-duration: 12s; }
+
+@keyframes aster-shoot-enhance {
   0%   { opacity: 0; transform: translate(0, 0); }
-  2%   { opacity: 1; }
-  18%  { opacity: 1; transform: translate(60vw, 34vh); }
-  22%  { opacity: 0; transform: translate(68vw, 39vh); }
-  100% { opacity: 0; transform: translate(68vw, 39vh); }
+  5%   { opacity: 1; }
+  20%  { opacity: 1; transform: translate(80vw, 40vh); }
+  25%  { opacity: 0; transform: translate(90vw, 45vh); }
+  100% { opacity: 0; transform: translate(90vw, 45vh); }
+}
+
+@keyframes shooting-star-shimmer {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }
 
 /* Empty-state fade-up (mount-triggered, no JS state needed) */

@@ -7,6 +7,7 @@ export const LUMEN_RANKS = [
   "onyx",
   "nemesis",
   "arch_nemesis",
+  "developer",
 ] as const;
 
 export type LumenRank = (typeof LUMEN_RANKS)[number];
@@ -66,6 +67,15 @@ export const RANK_DETAILS: Record<LumenRank, RankStyle> = {
     label: "Arch Nemesis", points: 10000, perk: "10,000 pts", uploadMb: 40,
     gradient: "linear-gradient(135deg,#04141a,#0b3f4a 50%,#12e0c8)",
     ink: "#d7fff8", glow: "rgba(18,224,200,.7)",
+  },
+  developer: {
+    label: "Developer",
+    points: Infinity,
+    perk: "∞ pts",
+    uploadMb: 64,
+    gradient: "linear-gradient(135deg,#ff00ff,#00ffff 55%,#ff00ff)",
+    ink: "#000000",
+    glow: "rgba(255,0,255,.6)",
   },
 };
 

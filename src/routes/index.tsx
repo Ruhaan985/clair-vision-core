@@ -18,16 +18,17 @@ export const Route = createFileRoute("/")({
 
 const TITLE = "Lumen".split("");
 const BOOT_MODULES = [
-  "Booting core",
-  "Loading language models",
-  "Calibrating tone",
-  "Warming up creativity",
-  "Ready",
+  "Initializing quantum core",
+  "Calibrating neural pathways",
+  "Loading language matrices",
+  "Synchronizing knowledge vaults",
+  "Warming creative processors",
+  "Online and ready",
 ];
 
 function Index() {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState<0 | 1 | 2 | 3 | 4>(0);
+  const [phase, setPhase] = useState<0 | 1 | 2 | 3 | 4 | 5>(0);
   const [mounted, setMounted] = useState(false);
 
   const goToChat = () => {
@@ -46,24 +47,32 @@ function Index() {
     }
     sessionStorage.setItem("lumen.splash.v1", "1");
 
-    // Staged opening: mark draws in, title/modules start, tagline settles, then fade out.
-    const t1 = setTimeout(() => setPhase(1), 150);
-    const t2 = setTimeout(() => setPhase(2), 950);
-    const t3 = setTimeout(() => setPhase(3), 1700);
-    const t4 = setTimeout(() => setPhase(4), 4100);
-    const tNav = setTimeout(goToChat, 4600);
+    // Epic cinematic opening sequence - like a movie trailer
+    const t1 = setTimeout(() => setPhase(1), 500);   // Deep space opening
+    const t2 = setTimeout(() => setPhase(2), 2500);   // Nebula formation and first stars
+    const t3 = setTimeout(() => setPhase(3), 4500);   // Logo begins to form
+    const t4 = setTimeout(() => setPhase(4), 7000);   // Title appears with boot sequence
+    const t5 = setTimeout(() => setPhase(5), 10000);  // Final energy pulse and preparation
+    const tNav = setTimeout(goToChat, 13000);         // Transition to chat
+
     return () => {
-      [t1, t2, t3, t4, tNav].forEach(clearTimeout);
+      [t1, t2, t3, t4, t5, tNav].forEach(clearTimeout);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   return (
-    <div className={`splash relative flex h-screen w-full items-center justify-center overflow-hidden ${phase >= 4 ? "is-leaving" : ""}`}>
+    <div className={`splash relative flex h-screen w-full items-center justify-center overflow-hidden phase-${phase} ${phase >= 5 ? "is-leaving" : ""}`}>
       <div className="splash-grid" aria-hidden="true" />
       <div className="splash-orb splash-orb-a" aria-hidden="true" />
       <div className="splash-orb splash-orb-b" aria-hidden="true" />
       <div className="splash-orb splash-orb-c" aria-hidden="true" />
+
+      {/* Enhanced cinematic effects - timed to match epic sequence */}
+      {phase >= 2 && <div className="splash-lens-flare" aria-hidden="true" />}
+      {phase >= 3 && <div className="splash-light-leak" aria-hidden="true" />}
+      {phase >= 4 && <div className="splash-energy-pulse" aria-hidden="true" />}
+
       <IntroStars />
 
       <button type="button" className="splash-skip" onClick={goToChat}>
@@ -71,29 +80,29 @@ function Index() {
       </button>
 
       <div className="relative z-10 flex flex-col items-center text-center">
-        <LumenMark active={mounted && phase >= 1} />
+        <LumenMark active={mounted && phase >= 2} />
 
-        <h1 className={`mt-6 font-serif text-5xl font-normal splash-title ${mounted && phase >= 2 ? "is-in" : ""}`}>
+        <h1 className={`mt-8 font-serif text-6xl font-normal splash-title ${mounted && phase >= 3 ? "is-in" : ""}`}>
           {TITLE.map((ch, i) => (
             <span key={i}>{ch}</span>
           ))}
         </h1>
 
-        <p className={`mt-3 text-sm tracking-wide splash-tagline ${mounted && phase >= 3 ? "is-in" : ""}`}>AI · always on</p>
+        <p className={`mt-4 text-lg tracking-wider splash-tagline ${mounted && phase >= 3 ? "is-in" : ""}`}>AI · always on</p>
 
-        <BootSequence active={mounted && phase >= 2} />
+        <BootSequence active={mounted && phase >= 4} />
 
-        <div className={`splash-bar mt-4 ${mounted && phase >= 2 ? "is-in" : ""}`}>
+        <div className={`splash-bar mt-6 ${mounted && phase >= 4 ? "is-in" : ""}`}>
           <span />
         </div>
 
-        <p className={`mt-6 text-[11px] splash-credit ${mounted && phase >= 3 ? "is-in" : ""}`}>by MD RUHAAN</p>
+        <p className={`mt-8 text-[12px] splash-credit ${mounted && phase >= 4 ? "is-in" : ""}`}>by MD RUHAAN</p>
       </div>
     </div>
   );
 }
 
-/** Central mark: glowing box, pulse rings, self-drawing icon that gently tilts toward the pointer. */
+/** Central mark: enhanced with cinematic reveal effects */
 function LumenMark({ active }: { active: boolean }) {
   const tiltRef = useRef<HTMLDivElement>(null);
 
@@ -128,13 +137,13 @@ function LumenMark({ active }: { active: boolean }) {
   );
 }
 
-/** Cycles through short "boot" status lines for a lively, alive-feeling loading state. */
+/** Enhanced boot sequence with more dramatic timing */
 function BootSequence({ active }: { active: boolean }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (!active || index >= BOOT_MODULES.length - 1) return;
-    const t = setTimeout(() => setIndex((i) => i + 1), 620);
+    const t = setTimeout(() => setIndex((i) => i + 1), 1500); // Even slower for cinematic feel
     return () => clearTimeout(t);
   }, [active, index]);
 
@@ -149,12 +158,151 @@ function BootSequence({ active }: { active: boolean }) {
   );
 }
 
+/** Completely reimagined cinematic star field */
 function IntroStars() {
+  // Create a deeply cinematic star field with multiple layers and types
+  const stars = [];
+
+  // Layer 1: Deep space background stars (very numerous, faint)
+  for (let i = 0; i < 120; i++) {
+    const size = Math.random() * 0.8 + 0.2; // 0.2px to 1px
+    const brightness = Math.random() * 0.3 + 0.1; // Very faint
+    const delay = Math.random() * 8; // 0-8s delay
+    const duration = 4 + Math.random() * 6; // 4-10s twinkle cycle
+
+    stars.push(
+      <i
+        key={`deep-star-${i}`}
+        className="splash-star deep"
+        style={{
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          width: `${size}px`,
+          height: `${size}px`,
+          background: `oklch(${0.8 + Math.random() * 0.15} 0 0 / ${brightness})`,
+          boxShadow: `0 0 ${size * 2}px 1px oklch(${0.8 + Math.random() * 0.15} 0 0 / ${brightness * 0.3})`,
+          animationDelay: `${delay}s`,
+          animationDuration: `${duration}s`
+        }}
+      />
+    );
+  }
+
+  // Layer 2: Main star field (moderate density)
+  for (let i = 0; i < 60; i++) {
+    const size = Math.random() * 1.5 + 0.5; // 0.5px to 2px
+    const brightness = Math.random() * 0.5 + 0.3; // Moderate brightness
+    const delay = Math.random() * 6;
+    const duration = 3 + Math.random() * 4;
+
+    stars.push(
+      <i
+        key={`main-star-${i}`}
+        className="splash-star"
+        style={{
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          width: `${size}px`,
+          height: `${size}px`,
+          background: `oklch(${0.85 + Math.random() * 0.1} 0 0 / ${brightness})`,
+          boxShadow: `0 0 ${size * 3}px 1px oklch(${0.85 + Math.random() * 0.1} 0 0 / ${brightness * 0.4})`,
+          animationDelay: `${delay}s`,
+          animationDuration: `${duration}s`
+        }}
+      />
+    );
+  }
+
+  // Layer 3: Bright cinematic stars (prominent, with color)
+  for (let i = 0; i < 20; i++) {
+    const size = Math.random() * 2.5 + 1; // 1px to 3.5px
+    const delay = Math.random() * 5;
+    const hue = Math.random() * 60 + 250; // Blue-purple range
+    const saturation = Math.random() * 0.1 + 0.05;
+
+    stars.push(
+      <i
+        key={`bright-star-${i}`}
+        className="splash-star cinematic"
+        style={{
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          width: `${size}px`,
+          height: `${size}px`,
+          background: `oklch(${0.9 + Math.random() * 0.08} ${saturation} ${hue} / ${0.7 + Math.random() * 0.3})`,
+          boxShadow: `0 0 ${size * 4}px 2px oklch(${0.9 + Math.random() * 0.08} ${saturation * 0.5} ${hue} / ${0.5 + Math.random() * 0.3})`,
+          animationDelay: `${delay}s`
+        }}
+      />
+    );
+  }
+
+  // Layer 4: Ultra-bright stars (lens flare style)
+  for (let i = 0; i < 8; i++) {
+    const size = Math.random() * 3 + 2; // 2px to 5px
+    const delay = i * 800; // Staggered for effect
+
+    stars.push(
+      <i
+        key={`ultra-star-${i}`}
+        className="splash-star ultra-bright"
+        style={{
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          width: `${size}px`,
+          height: `${size}px`,
+          background: `oklch(0.95 0 0 / ${0.8 + Math.random() * 0.2})`,
+          boxShadow: `0 0 ${size * 5}px 3px oklch(0.95 0 0 / ${0.6 + Math.random() * 0.4})`,
+          animationDelay: `${delay}ms`
+        }}
+      />
+    );
+  }
+
+  // Layer 5: Shooting stars with trails
+  for (let i = 0; i < 5; i++) {
+    const delay = i * 2000 + Math.random() * 1000; // Staggered shooting stars
+
+    stars.push(
+      <i
+        key={`shooting-star-${i}`}
+        className="splash-shooting-star cinematic"
+        style={{
+          top: `${Math.random() * 40}%`,
+          left: `-5%`,
+          animationDelay: `${delay}ms`
+        }}
+      />
+    );
+  }
+
+  // Layer 6: Nebula clouds (soft, colorful backgrounds)
+  for (let i = 0; i < 4; i++) {
+    const delay = i * 3000;
+    const size = Math.random() * 80 + 40; // 40px to 120px
+    const hue = Math.random() * 60 + 250; // Blue-purple range
+
+    stars.push(
+      <div
+        key={`nebula-${i}`}
+        className="splash-nebula"
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          background: `radial-gradient(circle at center, oklch(0.3 0.05 ${hue} / 0.1) 0%, transparent 70%)`,
+          filter: `blur(${Math.random() * 20 + 10}px)`,
+          animationDelay: `${delay}ms`,
+          animation: `nebula-drift 20s ease-in-out infinite`
+        }}
+      />
+    );
+  }
+
   return (
     <div className="splash-stars" aria-hidden="true">
-      {Array.from({ length: 42 }, (_, i) => (
-        <i key={i} style={{ left: `${(i * 37) % 101}%`, top: `${(i * 61) % 97}%`, animationDelay: `${(i % 9) * 0.34}s` }} />
-      ))}
+      {stars}
     </div>
   );
 }
