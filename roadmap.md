@@ -1,5 +1,6 @@
-- [ ] Replace global theme tokens and typography with Aster
-- [ ] Reskin sidebar, real chat shell, composer, and mobile drawer
-- [ ] Add trajectory hero, sparse stars, and reduced-motion handling
-- [ ] Restyle opening screen and supporting routes
-- [ ] Verify desktop/mobile behavior and runtime health
+## Current work
+- [ ] Audit responsive layouts and fix mobile/tablet/desktop sizing
+- [ ] Restrict developer-only tools to the developer role
+- [ ] Improve slide generation with image support
+- [ ] Fix current-date and freshness handling
+- [ ] Verify main flows and resolve build/runtime issues
