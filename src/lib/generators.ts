@@ -28,7 +28,13 @@ export type PptxPayload = {
   kind: "pptx";
   title: string;
   subtitle?: string;
-  slides: Array<{ title: string; bullets: string[]; notes?: string }>;
+  slides: Array<{
+    title: string;
+    bullets: string[];
+    notes?: string;
+    imageUrl?: string;
+    imagePrompt?: string;
+  }>;
 };
 
 export type StoryboardPayload = {
@@ -287,12 +293,16 @@ export async function buildAndDownloadPptx(p: PptxPayload) {
       color: "F0FDF4",
       fontFace: "Calibri",
     });
+    const imageData = s.imageUrl ? await imageToDataUrl(s.imageUrl) : null;
+    if (imageData) {
+      slide.addImage({ data: imageData, x: 7.45, y: 1.55, w: 5.25, h: 4.75, rounding: true });
+    }
     slide.addText(
       s.bullets.map((b) => ({ text: b, options: { bullet: { code: "25CF" } } })),
       {
         x: 0.7,
         y: 1.6,
-        w: 12,
+        w: imageData ? 6.2 : 12,
         h: 5.4,
         fontSize: 20,
         color: "E2E8F0",
@@ -304,4 +314,21 @@ export async function buildAndDownloadPptx(p: PptxPayload) {
   }
 
   await pptx.writeFile({ fileName: `${sanitize(p.title)}.pptx` });
+}
+
+async function imageToDataUrl(url: string): Promise<string | null> {
+  if (url.startsWith("data:")) return url;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return await new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
 }

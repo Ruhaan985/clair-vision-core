@@ -14,7 +14,7 @@ function ThreadPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
+    <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-background text-foreground">
       {/* Desktop sidebar */}
       <div className="hidden md:flex">
         <Sidebar />
@@ -36,7 +36,7 @@ function ThreadPage() {
         />
         <div
           className={cn(
-            "absolute inset-y-0 left-0 transition-transform duration-300",
+            "absolute inset-y-0 left-0 w-[min(272px,calc(100vw-1rem))] transition-transform duration-300",
             mobileOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
