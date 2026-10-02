@@ -158,6 +158,9 @@ export const assignUserRank = createServerFn({ method: "POST" })
     const admin = await assertLumenAdmin(context);
     const allowed: LumenRank[] = ["bronze", "silver", "gold", "platinum", "diamond", "onyx", "nemesis", "arch_nemesis", "developer"];
     if (!allowed.includes(data.rank)) throw new Error("Invalid rank");
+    if (data.rank === "developer") {
+      throw new Error("Developer rank is reserved for the developer account.");
+    }
     const { error } = await admin.from("user_ranks").upsert(
       {
         user_id: data.userId,
