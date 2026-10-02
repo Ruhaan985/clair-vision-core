@@ -131,7 +131,7 @@ export function Calculator({ onClose }: { onClose: () => void }) {
   );
 
   return (
-    <div className="w-[280px] rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur">
+    <div className="w-full max-w-[min(280px,calc(100vw-1.5rem))] rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Calculator</span>
         <button

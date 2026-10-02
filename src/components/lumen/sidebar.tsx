@@ -92,7 +92,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     <>
     {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
     {boardOpen && <Leaderboard onClose={() => setBoardOpen(false)} />}
-    <aside className="flex h-full w-[272px] flex-col border-r border-sidebar-border bg-sidebar px-5 py-7 text-sidebar-foreground">
+    <aside className="flex h-full w-[min(272px,calc(100vw-1rem))] min-w-0 flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground sm:px-5 sm:py-7">
       <div className="mb-7 flex items-center gap-2.5">
         <AsterMark className="h-[30px] w-[30px]" />
         <div className="flex flex-col leading-none">

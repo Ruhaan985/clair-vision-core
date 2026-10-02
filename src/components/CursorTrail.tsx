@@ -23,7 +23,6 @@ export function CursorTrail() {
     window.addEventListener("mousemove", handleMouseMove);
 
     const updateTrail = () => {
-      // Add new celestial object at cursor position
       const newObject: CelestialObject = {
         x: lastMousePos.current.x,
         y: lastMousePos.current.y,
@@ -34,9 +33,6 @@ export function CursorTrail() {
         maxLife: 100 + Math.random() * 100, // 100-200 frames life
       };
 
-      setObjects((prev) => [...prev, newObject]);
-
-      // Update existing objects
       setObjects((prev) => {
         const updated = prev
           .map((obj) => ({
@@ -45,9 +41,10 @@ export function CursorTrail() {
             opacity: 0.8 * (1 - obj.life / obj.maxLife), // Fade out over life
             size: obj.size * (1 - obj.life / obj.maxLife * 0.5), // Slightly shrink
           }))
-          .filter((obj) => obj.life < obj.maxLife); // Remove dead objects
+          .filter((obj) => obj.life < obj.maxLife)
+          .slice(-80);
 
-        return updated;
+        return [...updated, newObject];
       });
 
       animationFrameRef.current = requestAnimationFrame(updateTrail);

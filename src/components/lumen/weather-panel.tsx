@@ -58,7 +58,7 @@ export function WeatherPanel({ onClose }: { onClose: () => void }) {
     : undefined;
 
   return (
-    <div className="w-[320px] rounded-2xl border border-border bg-card/95 p-4 shadow-2xl backdrop-blur">
+    <div className="w-full max-w-[min(320px,calc(100vw-1.5rem))] rounded-2xl border border-border bg-card/95 p-4 shadow-2xl backdrop-blur">
       <div className="mb-3 flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <CloudSun className="h-3.5 w-3.5" /> Weather & Location
