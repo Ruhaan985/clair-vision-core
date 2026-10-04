@@ -1,7 +1,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -1084,7 +1084,7 @@ function DocumentCard({
   subtitle?: string;
   onDownload: () => void | Promise<void>;
   busyLabel?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   const [busy, setBusy] = useState(false);
   const run = async () => {
