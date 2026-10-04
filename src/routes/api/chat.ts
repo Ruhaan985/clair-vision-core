@@ -22,7 +22,7 @@ Capabilities:
 - For math: ALWAYS write equations using LaTeX with DOLLAR SIGN delimiters only. Inline math uses single dollar signs like $E = mc^2$ and display math uses double dollar signs like $$\\int_0^1 x^2\\,dx = \\tfrac{1}{3}$$. Do NOT use \\(...\\) or \\[...\\] — only $...$ and $$...$$. NEVER substitute placeholder symbols (no asterisks, no "&$*+*"). Always compute and show the final numeric answer.
 - The user can attach images and files. When images are attached, describe and reason about what is visible.`;
 
-type ChatBody = { messages?: unknown; language?: unknown; languageLabel?: unknown };
+type ChatBody = { messages?: unknown; language?: unknown; languageLabel?: unknown; timeZone?: unknown };
 type StreamWriter = Parameters<Parameters<typeof createUIMessageStream>[0]["execute"]>[0]["writer"];
 type AnyPart = UIMessage["parts"][number] & Record<string, unknown>;
 
@@ -37,6 +37,8 @@ export const Route = createFileRoute("/api/chat")({
         const language = typeof body.language === "string" ? body.language : "en";
         const languageLabel =
           typeof body.languageLabel === "string" ? body.languageLabel : "English";
+        const timeZone = validTimeZone(body.timeZone);
+        const clock = dateContext(timeZone);
         if (!Array.isArray(messages)) {
           return new Response("Messages are required", { status: 400 });
         }
@@ -52,23 +54,30 @@ export const Route = createFileRoute("/api/chat")({
               const cleaned = cleanPrompt(latestText);
 
               try {
+                if (mode === "chat" && language === "en" && isDateQuestion(cleaned)) {
+                  writeText(
+                    writer,
+                    `Today is **${clock.full}**, and it's **${clock.time}** where you are.`,
+                  );
+                  return;
+                }
                 if (mode === "image") {
                   await handleImage(cleaned, writer);
                   return;
                 }
                 if (mode === "pdf") {
-                  await handlePdf(cleaned, writer);
+                  await handlePdf(cleaned, writer, clock.text);
                   return;
                 }
                 if (mode === "pptx") {
-                  await handlePptx(cleaned, writer);
+                  await handlePptx(cleaned, writer, clock.text);
                   return;
                 }
                 if (mode === "video") {
                   await handleStoryboard(cleaned, writer);
                   return;
                 }
-                await handleChat(uiMessages, writer, request, { language, languageLabel });
+                await handleChat(uiMessages, writer, request, { language, languageLabel, clock: clock.text });
               } catch (e) {
                 writeText(
                   writer,
@@ -147,12 +156,21 @@ async function handleChat(
   messages: UIMessage[],
   writer: StreamWriter,
   request: Request,
-  opts: { language: string; languageLabel: string } = { language: "en", languageLabel: "English" },
+  opts: { language: string; languageLabel: string; clock: string },
 ) {
   const provider = toProviderMessages(messages);
 
   const latestRaw = latestUserText(messages);
   const latest = latestRaw.toLowerCase();
+
+  // Always ground the model in the real current date/time.
+  provider.splice(1, 0, { role: "system", content: opts.clock });
+
+  // Pull fresh headlines for time-sensitive questions so answers stay current.
+  if (!latestRaw.includes("[[CODE_ONLY]]") && NEWS_RE.test(latest)) {
+    const news = await fetchNews(latestRaw, request).catch(() => null);
+    if (news) provider.splice(2, 0, { role: "system", content: news });
+  }
 
   // Language directive — always inject unless user picked English default.
   if (opts.language && opts.language !== "en") {
@@ -412,7 +430,7 @@ async function generateImageDataUrl(prompt: string): Promise<string | null> {
   }
 }
 
-async function handlePdf(prompt: string, writer: StreamWriter) {
+async function handlePdf(prompt: string, writer: StreamWriter, clock: string) {
   const topic = prompt || "an interesting topic";
   const docKind = detectDocKind(topic);
   const guide = docKindGuide(docKind);
@@ -448,7 +466,9 @@ Rules:
 - Keep text plain — no markdown syntax inside strings.
 
 Document kind: ${docKind}.
-${guide}`,
+${guide}
+
+${clock}`,
       },
       { role: "user", content: `Create this document: ${topic}` },
     ],
@@ -525,34 +545,129 @@ function docKindGuide(kind: string): string {
   }
 }
 
-async function handlePptx(prompt: string, writer: StreamWriter) {
+const SLIDE_LAYOUTS = ["split", "image-left", "hero", "stats", "quote", "two-column", "bullets"] as const;
+type SlideLayout = (typeof SLIDE_LAYOUTS)[number];
+
+type RawSlide = {
+  layout?: string;
+  title?: string;
+  bullets?: unknown;
+  notes?: string;
+  imagePrompt?: string;
+  stats?: Array<{ value?: unknown; label?: unknown }>;
+  quote?: string;
+  attribution?: string;
+  columns?: Array<{ heading?: unknown; bullets?: unknown }>;
+};
+
+function slideImageUrl(prompt: string, seed: number, w = 1280, h = 960) {
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(
+    `${prompt}, professional presentation visual, cinematic lighting, rich detail, no text, no words, no watermark`,
+  )}?width=${w}&height=${h}&nologo=true&seed=${seed}`;
+}
+
+const strList = (v: unknown, max = 6) =>
+  Array.isArray(v) ? v.map((x) => String(x ?? "").trim()).filter(Boolean).slice(0, max) : [];
+
+async function handlePptx(prompt: string, writer: StreamWriter, clock: string) {
   const topic = prompt || "an interesting topic";
+  const countMatch = topic.match(/\b(\d{1,2})\s*(slides?|pages?)\b/i);
+  const count = Math.max(4, Math.min(16, countMatch ? Number(countMatch[1]) : 9));
   const raw = await callProvider(
     [
       {
         role: "system",
-        content:
-          "You design crisp slide decks. Reply ONLY with valid JSON matching this exact schema: {\"title\": string, \"subtitle\": string, \"slides\": [{\"title\": string, \"bullets\": string[], \"notes\": string}]}. Include 6-9 slides. Each slide has 3-5 concise bullets (max ~12 words each). Make it informative and specific to the topic. No markdown, JSON only.",
+        content: `You are an award-winning presentation designer and subject-matter expert. Reply ONLY with valid JSON — no markdown.
+
+Schema:
+{
+  "title": string,
+  "subtitle": string,
+  "coverImagePrompt": string,
+  "slides": [
+    {
+      "layout": "split" | "image-left" | "hero" | "stats" | "quote" | "two-column" | "bullets",
+      "title": string,
+      "bullets": string[],
+      "notes": string,
+      "imagePrompt": string,
+      "stats": [{ "value": string, "label": string }],
+      "quote": string,
+      "attribution": string,
+      "columns": [{ "heading": string, "bullets": string[] }]
+    }
+  ]
+}
+
+Rules:
+- Exactly ${count} content slides (not counting the cover). Tell a clear story: hook → context → key ideas → evidence → implications → takeaway.
+- Vary layouts. Use mostly "split" and "image-left"; include at least one "hero", one "stats" (2-4 real, well-known figures — never invent numbers; if unsure use qualitative labels), one "two-column" (comparisons, pros/cons, before/after), and at most one "quote" (only real, correctly attributed quotes).
+- bullets: 3-5 per slide, specific and insightful, max ~14 words each. "hero" slides use 1 short punchy line.
+- notes: 2-4 sentences of speaker notes that add depth beyond the bullets.
+- imagePrompt: for EVERY slide and the cover, one vivid sentence describing a photo/illustration (subject, setting, lighting, mood). No text in images.
+- Fill only the fields relevant to the layout; use [] or "" for the rest.
+- Be factually accurate and up to date as of today.
+
+${clock}`,
       },
       { role: "user", content: `Build a slide deck about: ${topic}` },
     ],
     { json: true, temperature: 0.7 },
   );
   const parsed = safeJson<{
-    title: string;
+    title?: string;
     subtitle?: string;
-    slides: Array<{ title: string; bullets: string[]; notes?: string }>;
+    coverImagePrompt?: string;
+    slides?: RawSlide[];
   }>(raw);
+
+  const base = Math.floor(Math.random() * 900_000);
+  const title = parsed?.title || titleFromPrompt(topic, "Generated Slide Deck");
+  const rawSlides: RawSlide[] = parsed?.slides?.length
+    ? parsed.slides
+    : [{ title: topic, bullets: ["Introduction", "Key points", "Conclusion"], layout: "split" }];
+
+  const slides = rawSlides.slice(0, 16).map((s, i) => {
+    const layout: SlideLayout = SLIDE_LAYOUTS.includes(s.layout as SlideLayout)
+      ? (s.layout as SlideLayout)
+      : "split";
+    const imagePrompt = (s.imagePrompt || `${s.title || topic}, ${topic}`).trim();
+    const wantsImage = layout === "split" || layout === "image-left" || layout === "hero";
+    return {
+      layout,
+      title: String(s.title || `Slide ${i + 1}`),
+      bullets: strList(s.bullets),
+      notes: s.notes ? String(s.notes) : undefined,
+      imagePrompt,
+      imageUrl: wantsImage
+        ? slideImageUrl(imagePrompt, base + i, layout === "hero" ? 1600 : 1024, layout === "hero" ? 900 : 1024)
+        : undefined,
+      stats: (s.stats ?? [])
+        .map((x) => ({ value: String(x?.value ?? "").trim(), label: String(x?.label ?? "").trim() }))
+        .filter((x) => x.value)
+        .slice(0, 4),
+      quote: s.quote ? String(s.quote) : undefined,
+      attribution: s.attribution ? String(s.attribution) : undefined,
+      columns: (s.columns ?? [])
+        .map((c) => ({ heading: String(c?.heading ?? "").trim(), bullets: strList(c?.bullets, 5) }))
+        .filter((c) => c.heading || c.bullets.length)
+        .slice(0, 2),
+    };
+  });
+
+  const coverPrompt = parsed?.coverImagePrompt || `${title}, striking editorial key visual`;
   const payload = {
     kind: "pptx" as const,
-    title: parsed?.title || titleFromPrompt(topic, "Generated Slide Deck"),
+    title,
     subtitle: parsed?.subtitle || "Generated by Lumen",
-    slides: parsed?.slides?.length
-      ? parsed.slides
-      : [{ title: topic, bullets: ["Introduction", "Key points", "Conclusion"] }],
+    coverImageUrl: slideImageUrl(coverPrompt, base + 99, 1600, 900),
+    slides,
   };
   writeTool(writer, "generate_pptx", { title: payload.title }, payload);
-  await streamText(writer, `Your slide deck “${payload.title}” is ready.`);
+  await streamText(
+    writer,
+    `Your ${slides.length + 3}-slide deck “${payload.title}” is ready — with a cover, agenda, image layouts, speaker notes and a closing slide.`,
+  );
 }
 
 async function handleStoryboard(prompt: string, writer: StreamWriter) {
@@ -717,4 +832,83 @@ function titleFromPrompt(prompt: string, fallback: string) {
     .slice(0, 9)
     .join(" ")
     .replace(/^./, (c) => c.toUpperCase());
+}
+
+// --- Current date / live freshness -----------------------------------------
+
+function validTimeZone(v: unknown): string {
+  if (typeof v !== "string" || !v || v.length > 64) return "UTC";
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: v });
+    return v;
+  } catch {
+    return "UTC";
+  }
+}
+
+function dateContext(timeZone: string) {
+  const now = new Date();
+  const fmt = (o: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("en-US", { timeZone, ...o }).format(now);
+  const full = fmt({ weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const time = fmt({ hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+  const year = fmt({ year: "numeric" });
+  const text =
+    `CURRENT DATE & TIME (authoritative, from the live clock — trust this over your training data): ` +
+    `Today is ${full}. The user's local time is ${time} (${timeZone}). UTC now: ${now.toISOString()}. The current year is ${year}. ` +
+    `Use this for any question about today's date, day, time, year, ages, deadlines, countdowns or "how long ago". Never say it is an earlier year. ` +
+    `Your built-in knowledge may be older than today: for recent or fast-changing topics, rely on LIVE_NEWS context when it is provided, and say plainly when something may have changed since your information was last updated.`;
+  return { full, time, year, text };
+}
+
+function isDateQuestion(text: string) {
+  const t = text.toLowerCase().replace(/[?!.]+$/g, "").trim();
+  return /^(hey |hi |lumen,? )?(what('?s| is)\s+(the\s+)?(date|day|time|year|today'?s date)(\s+(today|now|right now|is it|it is))?|what\s+(day|date|time|year)\s+is\s+(it|today)(\s+today)?|(tell me\s+)?(today'?s|todays|the current|current)\s+(date|day|time|year)|date\s+today|today'?s\s+date|time\s+now|what\s+is\s+today)$/.test(
+    t,
+  );
+}
+
+const NEWS_RE =
+  /\b(news|latest|recent|recently|today|tonight|yesterday|this (week|month|year)|current(ly)?|right now|nowadays|updates?|happening|headlines?|trending|score|won|winner|election|results?|price of|stock|released?|launch(ed)?|who is the (current )?(president|prime minister|ceo|captain|chief minister)|20(2[4-9]|3\d))\b/;
+
+function decodeXml(s: string) {
+  return s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .trim();
+}
+
+async function fetchNews(query: string, request: Request): Promise<string | null> {
+  const q = query
+    .replace(/\[\[CODE_ONLY\]\]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 140);
+  if (!q) return null;
+  const country = (request.headers.get("cf-ipcountry") || "US").toUpperCase().replace(/[^A-Z]/g, "") || "US";
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-${country}&gl=${country}&ceid=${country}:en`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; LumenBot/1.0)" },
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!res.ok) return null;
+  const xml = await res.text();
+  const items = xml.split("<item>").slice(1, 9).map((chunk) => {
+    const get = (tag: string) => decodeXml(chunk.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`))?.[1] ?? "");
+    return { title: get("title"), date: get("pubDate"), source: get("source"), link: get("link") };
+  }).filter((i) => i.title);
+  if (!items.length) return null;
+  const lines = items.map(
+    (i, n) => `${n + 1}. ${i.title}${i.source ? ` — ${i.source}` : ""}${i.date ? ` (${i.date})` : ""}${i.link ? ` <${i.link}>` : ""}`,
+  );
+  return (
+    `LIVE_NEWS (fresh web headlines fetched just now for the user's question):\n${lines.join("\n")}\n` +
+    `Use these to give an up-to-date answer. Prefer the most recent items, mention dates, and cite sources as markdown links. ` +
+    `If the headlines don't cover the question, answer from your knowledge and note it may not reflect the very latest developments.`
+  );
 }
