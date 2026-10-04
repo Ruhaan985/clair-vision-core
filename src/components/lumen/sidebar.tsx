@@ -36,7 +36,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [langQuery, setLangQuery] = useState("");
   const { isAdmin } = useAdmin();
   const { rank, points } = useRankState();
-  const progress = rankProgress(points);
+  const progress = rankProgress(points, rank);
   const [adminOpen, setAdminOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   usePresenceHeartbeat();

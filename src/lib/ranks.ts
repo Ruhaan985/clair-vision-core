@@ -84,18 +84,24 @@ export const MAX_RANK_POINTS = RANK_DETAILS.arch_nemesis.points;
 export function rankForPoints(points: number): LumenRank {
   let current: LumenRank = "bronze";
   for (const r of LUMEN_RANKS) {
+    if (r === "developer") continue;
     if (points >= RANK_DETAILS[r].points) current = r;
   }
   return current;
 }
 
 export function nextRank(rank: LumenRank): LumenRank | null {
+  // Developer is a special, admin-granted rank — never "next" in progression.
+  if (rank === "developer" || rank === "arch_nemesis") return null;
   const i = LUMEN_RANKS.indexOf(rank);
   return i >= 0 && i < LUMEN_RANKS.length - 1 ? LUMEN_RANKS[i + 1]! : null;
 }
 
 /** Progress (0-1) toward the next rank. */
-export function rankProgress(points: number) {
+export function rankProgress(points: number, assigned?: LumenRank) {
+  if (assigned === "developer") {
+    return { rank: assigned, next: null as LumenRank | null, pct: 1, remaining: 0 };
+  }
   const rank = rankForPoints(points);
   const next = nextRank(rank);
   if (!next) return { rank, next: null as LumenRank | null, pct: 1, remaining: 0 };

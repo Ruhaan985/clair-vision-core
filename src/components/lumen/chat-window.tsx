@@ -1,7 +1,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -179,7 +179,11 @@ export function ChatWindow({ threadId }: { threadId: string }) {
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        body: { language, languageLabel: languageLabel(language) },
+        body: () => ({
+          language,
+          languageLabel: languageLabel(language),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
       }),
     [language],
   );
@@ -1041,7 +1045,10 @@ function MessageBody({ message }: { message: UIMessage }) {
           title={p.title}
           subtitle={p.subtitle || `${p.slides.length} slides`}
           onDownload={() => buildAndDownloadPptx(p)}
-        />
+          busyLabel="Building deck…"
+        >
+          <SlidePreviewStrip payload={p} />
+        </DocumentCard>
       ))}
       {storyboards.map((s, i) => (
         <StoryboardCard key={`sb-${i}`} payload={s} />
@@ -1068,15 +1075,32 @@ function DocumentCard({
   title,
   subtitle,
   onDownload,
+  busyLabel,
+  children,
 }: {
   icon: typeof FileDown;
   label: string;
   title: string;
   subtitle?: string;
   onDownload: () => void | Promise<void>;
+  busyLabel?: string;
+  children?: ReactNode;
 }) {
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onDownload();
+    } catch {
+      toast.error("Couldn't build the file. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
-    <div className="group flex items-center gap-3 rounded-lg border border-border bg-card/60 p-3">
+    <div className="overflow-hidden rounded-lg border border-border bg-card/60">
+    <div className="group flex flex-wrap items-center gap-3 p-3 sm:flex-nowrap">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary">
         <Icon className="h-5 w-5" />
       </div>
@@ -1095,12 +1119,53 @@ function DocumentCard({
       </div>
       <button
         type="button"
-        onClick={() => void onDownload()}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:brightness-110"
+        onClick={() => void run()}
+        disabled={busy}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:brightness-110 disabled:opacity-70"
       >
-        <Download className="h-3.5 w-3.5" />
-        Download
+        <Download className={busy ? "h-3.5 w-3.5 animate-pulse" : "h-3.5 w-3.5"} />
+        {busy ? busyLabel ?? "Preparing…" : "Download"}
       </button>
+    </div>
+    {children}
+    </div>
+  );
+}
+
+function SlidePreviewStrip({ payload }: { payload: PptxPayload }) {
+  const frames = [
+    { title: payload.title, imageUrl: payload.coverImageUrl, tag: "Cover" },
+    ...payload.slides.map((s, i) => ({
+      title: s.title,
+      imageUrl: s.imageUrl,
+      tag: `${i + 3}`,
+    })),
+  ];
+  return (
+    <div className="flex gap-2 overflow-x-auto border-t border-border/60 p-3 [scrollbar-width:thin]">
+      {frames.map((f, i) => (
+        <div
+          key={i}
+          className="relative aspect-video w-36 shrink-0 overflow-hidden rounded-md border border-border bg-background sm:w-44"
+        >
+          {f.imageUrl ? (
+            <img
+              src={f.imageUrl}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover opacity-80"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
+          <div className="absolute inset-x-2 bottom-1.5">
+            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{f.tag}</div>
+            <div className="line-clamp-2 text-[11px] font-medium leading-tight text-foreground">{f.title}</div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
