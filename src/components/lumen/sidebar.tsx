@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Plus, MessageSquare, Trash2, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield, Trophy, KeyRound } from "lucide-react";
+import { Plus, MessageSquare, Trash2, ScrollText, Smartphone, Apple, LogIn, LogOut, Languages, Check, Shield, Trophy, KeyRound, CreditCard } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
@@ -215,6 +215,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         )}
 
         <div className="flex flex-col gap-0.5">
+        <Link
+          to="/subscriptions"
+          onClick={onNavigate}
+          className="inline-flex w-full items-center gap-2 rounded-md px-1.5 py-2 text-[12.5px] text-muted-foreground transition hover:bg-foreground/[0.03] hover:text-foreground"
+        >
+          <CreditCard className="h-3.5 w-3.5 text-primary" />
+          Subscriptions
+        </Link>
         <button
           onClick={() => setBoardOpen(true)}
           className="inline-flex w-full items-center gap-2 rounded-md px-1.5 py-2 text-[12.5px] text-muted-foreground transition hover:bg-foreground/[0.03] hover:text-foreground"
