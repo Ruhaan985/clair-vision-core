@@ -9,29 +9,19 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CThreadIdRouteImport } from './routes/c.$threadId'
-import { Route as ApiWeatherRouteImport } from './routes/api/weather'
-import { Route as ApiTitleRouteImport } from './routes/api/title'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiTitleRouteImport } from './routes/api/title'
+import { Route as ApiWeatherRouteImport } from './routes/api/weather'
+import { Route as CThreadIdRouteImport } from './routes/c.$threadId'
 
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SubscriptionsRoute = SubscriptionsRouteImport.update({
-  id: '/subscriptions',
-  path: '/subscriptions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -39,19 +29,24 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CThreadIdRoute = CThreadIdRouteImport.update({
-  id: '/c/$threadId',
-  path: '/c/$threadId',
+const SubscriptionsRoute = SubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiWeatherRoute = ApiWeatherRouteImport.update({
-  id: '/api/weather',
-  path: '/api/weather',
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTitleRoute = ApiTitleRouteImport.update({
@@ -59,9 +54,14 @@ const ApiTitleRoute = ApiTitleRouteImport.update({
   path: '/api/title',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiChatRoute = ApiChatRouteImport.update({
-  id: '/api/chat',
-  path: '/api/chat',
+const ApiWeatherRoute = ApiWeatherRouteImport.update({
+  id: '/api/weather',
+  path: '/api/weather',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CThreadIdRoute = CThreadIdRouteImport.update({
+  id: '/c/$threadId',
+  path: '/c/$threadId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -149,25 +149,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/subscriptions': {
-      id: '/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/subscriptions'
-      preLoaderRoute: typeof SubscriptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -177,25 +163,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/c/$threadId': {
-      id: '/c/$threadId'
-      path: '/c/$threadId'
-      fullPath: '/c/$threadId'
-      preLoaderRoute: typeof CThreadIdRouteImport
+    '/subscriptions': {
+      id: '/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof SubscriptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/weather': {
-      id: '/api/weather'
-      path: '/api/weather'
-      fullPath: '/api/weather'
-      preLoaderRoute: typeof ApiWeatherRouteImport
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/title': {
@@ -205,11 +198,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTitleRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/chat': {
-      id: '/api/chat'
-      path: '/api/chat'
-      fullPath: '/api/chat'
-      preLoaderRoute: typeof ApiChatRouteImport
+    '/api/weather': {
+      id: '/api/weather'
+      path: '/api/weather'
+      fullPath: '/api/weather'
+      preLoaderRoute: typeof ApiWeatherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$threadId': {
+      id: '/c/$threadId'
+      path: '/c/$threadId'
+      fullPath: '/c/$threadId'
+      preLoaderRoute: typeof CThreadIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
